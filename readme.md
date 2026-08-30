@@ -1,0 +1,1 @@
+Most of the ppt making agent are too generic. To pass my time, will try to build best ppt generating agent out there. I have no design sense, but will try to gain the taste along the way
