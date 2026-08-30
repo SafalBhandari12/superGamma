@@ -1,4 +1,4 @@
-import type { GeneratedOutline, Slide } from "@supergamma/schema";
+import { DEFAULT_THEME_ID, type GeneratedOutline, type Slide, type ThemeId } from "@supergamma/schema";
 import { create } from "zustand";
 import { readSSE } from "../lib/sse";
 
@@ -14,6 +14,8 @@ interface DeckState {
   activeSlide: number;
   error: string | null;
   deckId: string | null;
+  themeId: ThemeId;
+  setThemeId: (themeId: ThemeId) => void;
   generate: (prompt: string) => Promise<void>;
   setActiveSlide: (index: number) => void;
 }
@@ -26,8 +28,10 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   activeSlide: 0,
   error: null,
   deckId: null,
+  themeId: DEFAULT_THEME_ID,
 
   setActiveSlide: (index) => set({ activeSlide: index }),
+  setThemeId: (themeId) => set({ themeId }),
 
   async generate(prompt: string) {
     set({
@@ -44,7 +48,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       const res = await fetch(`${API_URL}/api/decks/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, themeId: get().themeId }),
       });
       if (!res.ok) throw new Error(`request failed: ${res.status}`);
 

@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import {
-  DEFAULT_THEME,
   DeckSchema,
+  THEMES,
   type Deck,
   type GeneratedOutline,
   type Slide,
+  type ThemeId,
 } from "@supergamma/schema";
 import { NotFoundError } from "../errors/AppError.js";
 import { generateOutline, generateSlide } from "../llm/generate.js";
@@ -22,6 +23,7 @@ export type DeckEvent =
  */
 export async function generateDeck(
   prompt: string,
+  themeId: ThemeId,
   onEvent: (event: DeckEvent) => void
 ): Promise<Deck> {
   const outline = await generateOutline(prompt);
@@ -38,7 +40,7 @@ export async function generateDeck(
   const deck = DeckSchema.parse({
     id: randomUUID(),
     title: outline.deckTitle,
-    theme: DEFAULT_THEME,
+    theme: THEMES[themeId],
     slides,
   });
   deckStore.save(deck);

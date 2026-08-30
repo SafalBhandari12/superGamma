@@ -22,16 +22,40 @@ export const ThemeSchema = z.object({
 
 export type Theme = z.infer<typeof ThemeSchema>;
 
-export const DEFAULT_THEME: Theme = {
-  name: "default",
-  colors: {
-    background: "#ffffff",
-    text: "#111111",
-    accent: "#4f46e5",
-    muted: "#6b7280",
+/**
+ * Fixed catalog of hand-designed themes — same principle as the slide
+ * layout catalog: the user (or model) picks from options that already
+ * look good, nothing invents raw hex values at request time.
+ */
+export const THEMES = {
+  classic: {
+    name: "Classic",
+    colors: { background: "#ffffff", text: "#111111", accent: "#4f46e5", muted: "#6b7280" },
+    fonts: { heading: "Inter", body: "Inter" },
   },
-  fonts: {
-    heading: "Inter",
-    body: "Inter",
+  midnight: {
+    name: "Midnight",
+    colors: { background: "#0f1115", text: "#f5f5f7", accent: "#818cf8", muted: "#9ca3af" },
+    fonts: { heading: "Inter", body: "Inter" },
   },
-};
+  sunset: {
+    name: "Sunset",
+    colors: { background: "#fff8f0", text: "#2a1a12", accent: "#ea580c", muted: "#a8785a" },
+    fonts: { heading: "Georgia", body: "Inter" },
+  },
+  mono: {
+    name: "Mono",
+    colors: { background: "#fafafa", text: "#18181b", accent: "#18181b", muted: "#71717a" },
+    fonts: { heading: "Inter", body: "Inter" },
+  },
+} as const satisfies Record<string, Theme>;
+
+export type ThemeId = keyof typeof THEMES;
+
+export const THEME_IDS = Object.keys(THEMES) as [ThemeId, ...ThemeId[]];
+
+export const ThemeIdSchema = z.enum(THEME_IDS);
+
+export const DEFAULT_THEME_ID: ThemeId = "classic";
+
+export const DEFAULT_THEME: Theme = THEMES[DEFAULT_THEME_ID];

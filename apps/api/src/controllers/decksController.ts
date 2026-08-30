@@ -1,9 +1,11 @@
+import { DEFAULT_THEME_ID, ThemeIdSchema } from "@supergamma/schema";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { generateDeck, getDeckById } from "../services/deckService.js";
 
 const GenerateRequestSchema = z.object({
   prompt: z.string().min(3).max(500),
+  themeId: ThemeIdSchema.default(DEFAULT_THEME_ID),
 });
 
 /**
@@ -14,7 +16,7 @@ const GenerateRequestSchema = z.object({
  * can only be reported as an "error" event on the stream itself.
  */
 export async function generateDeckHandler(req: Request, res: Response) {
-  const { prompt } = GenerateRequestSchema.parse(req.body);
+  const { prompt, themeId } = GenerateRequestSchema.parse(req.body);
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -26,7 +28,7 @@ export async function generateDeckHandler(req: Request, res: Response) {
   };
 
   try {
-    await generateDeck(prompt, ({ type, data }) => send(type, data));
+    await generateDeck(prompt, themeId, ({ type, data }) => send(type, data));
   } catch (err) {
     send("error", { message: err instanceof Error ? err.message : "generation failed" });
   } finally {
