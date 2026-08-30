@@ -18,7 +18,11 @@ Layouts you can choose from, and when to use each:
 - two-column: a comparison or before/after — two parallel lists.
 - big-stat: one number the audience should remember, with a short label.
 - quote: a single quotation with an optional attribution.
-- image-left: an idea that benefits from a supporting visual next to the text.
+- agenda: 3-6 topics/sections with a short title and one-line description each — a table-of-contents or overview slide.
+- timeline: 3-5 steps or phases that happen in sequence — a process, roadmap, or journey.
+- table: a comparison or data table, 2-4 columns and 2-6 rows.
+
+Prefer variety: don't lean on "bullets" for everything. Use "table" for anything comparative (options, tiers, before/after), "timeline" for anything sequential (steps, phases, roadmap), and "agenda" for a topic overview.
 `.trim();
 
 /**

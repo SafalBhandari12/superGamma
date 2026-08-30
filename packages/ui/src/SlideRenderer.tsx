@@ -1,9 +1,11 @@
 import type { Slide } from "@supergamma/schema";
 import {
+  AgendaLayout,
   BigStatLayout,
   BulletsLayout,
-  ImageLeftLayout,
   QuoteLayout,
+  TableLayout,
+  TimelineLayout,
   TitleLayout,
   TwoColumnLayout,
 } from "./layouts.js";
@@ -25,8 +27,12 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
       return <BigStatLayout slide={slide} />;
     case "quote":
       return <QuoteLayout slide={slide} />;
-    case "image-left":
-      return <ImageLeftLayout slide={slide} />;
+    case "agenda":
+      return <AgendaLayout slide={slide} />;
+    case "timeline":
+      return <TimelineLayout slide={slide} />;
+    case "table":
+      return <TableLayout slide={slide} />;
     default: {
       const _exhaustive: never = slide;
       return _exhaustive;

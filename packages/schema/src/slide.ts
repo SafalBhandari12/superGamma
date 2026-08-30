@@ -45,11 +45,29 @@ export const QuoteSlideSchema = z.object({
   attribution: shortText.optional(),
 });
 
-export const ImageLeftSlideSchema = z.object({
-  layout: z.literal("image-left"),
+const agendaItem = z.object({ title: shortText, description: bodyText });
+
+export const AgendaSlideSchema = z.object({
+  layout: z.literal("agenda"),
   title: shortText,
-  body: bodyText,
-  imagePrompt: z.string().min(1).max(200),
+  items: z.array(agendaItem).min(3).max(6),
+});
+
+const timelineStep = z.object({ label: shortText, description: bodyText });
+
+export const TimelineSlideSchema = z.object({
+  layout: z.literal("timeline"),
+  title: shortText,
+  steps: z.array(timelineStep).min(3).max(5),
+});
+
+const tableCell = z.string().min(1).max(40);
+
+export const TableSlideSchema = z.object({
+  layout: z.literal("table"),
+  title: shortText,
+  columns: z.array(tableCell).min(2).max(4),
+  rows: z.array(z.array(tableCell).min(2).max(4)).min(2).max(6),
 });
 
 export const SlideSchema = z.discriminatedUnion("layout", [
@@ -58,7 +76,9 @@ export const SlideSchema = z.discriminatedUnion("layout", [
   TwoColumnSlideSchema,
   BigStatSlideSchema,
   QuoteSlideSchema,
-  ImageLeftSlideSchema,
+  AgendaSlideSchema,
+  TimelineSlideSchema,
+  TableSlideSchema,
 ]);
 
 export type Slide = z.infer<typeof SlideSchema>;
@@ -70,7 +90,9 @@ export const LAYOUT_NAMES = [
   "two-column",
   "big-stat",
   "quote",
-  "image-left",
+  "agenda",
+  "timeline",
+  "table",
 ] as const satisfies readonly SlideLayout[];
 
 export const SlideLayoutEnum = z.enum(LAYOUT_NAMES);
@@ -90,5 +112,7 @@ export const SLIDE_LAYOUT_SCHEMAS = {
   "two-column": TwoColumnSlideSchema,
   "big-stat": BigStatSlideSchema,
   quote: QuoteSlideSchema,
-  "image-left": ImageLeftSlideSchema,
+  agenda: AgendaSlideSchema,
+  timeline: TimelineSlideSchema,
+  table: TableSlideSchema,
 } as const satisfies Record<SlideLayout, z.ZodTypeAny>;
