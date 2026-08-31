@@ -25,6 +25,9 @@ function columnPath(x: number, y: number, w: number, baseline: number, r = 4): s
   } q${radius},0 ${radius},${radius} L${x + w},${baseline} Z`;
 }
 
+/** Thousands separators — "12,400" reads as a figure, "12400" reads as a string. */
+const fmt = (n: number) => n.toLocaleString("en-US");
+
 function niceMax(values: number[]): number {
   const max = Math.max(...values.map(Math.abs), 0);
   return max === 0 ? 1 : max * 1.15;
@@ -53,7 +56,7 @@ function ColumnChart({ chart }: { chart: Extract<ChartSpec, { kind: "column" | "
               d={columnPath(x, y, barW, baseline)}
             />
             <text className="v-val" x={x + barW / 2} y={y - 6} textAnchor="middle">
-              {p.value}
+              {fmt(p.value)}
               {chart.unit ?? ""}
             </text>
             <text className="v-cat" x={x + barW / 2} y={baseline + 16} textAnchor="middle">
@@ -84,7 +87,7 @@ function BarChart({ chart }: { chart: Extract<ChartSpec, { kind: "bar" }> }) {
             </text>
             <rect className="v-bar" x="2" y={y + 15} width={w} height={barH} rx="4" />
             <text className="v-val" x={w + 8} y={y + 15 + barH - 3}>
-              {p.value}
+              {fmt(p.value)}
               {chart.unit ?? ""}
             </text>
           </g>
@@ -100,7 +103,8 @@ function LineChart({ chart }: { chart: Extract<ChartSpec, { kind: "line" }> }) {
   const min = Math.min(...all, 0);
   const span = max - min || 1;
   const n = Math.max(chart.xLabels.length, 1);
-  const px = (i: number) => 16 + (i * 244) / Math.max(n - 1, 1);
+  // Stop the plot short of the right edge so end-of-line value labels fit.
+  const px = (i: number) => 16 + (i * 206) / Math.max(n - 1, 1);
   const py = (v: number) => 122 - ((v - min) / span) * 104;
 
   return (
@@ -121,11 +125,20 @@ function LineChart({ chart }: { chart: Extract<ChartSpec, { kind: "line" }> }) {
             stroke="var(--s2)"
             strokeWidth="2"
           />
+          {/* Label the endpoint only. Without it the chart shows shape but no
+              magnitude, since there are deliberately no gridlines. */}
+          <text
+            className="v-val"
+            x={px(s.values.length - 1) + 8}
+            y={py(s.values[s.values.length - 1]) + 4}
+          >
+            {fmt(s.values[s.values.length - 1])}
+          </text>
         </g>
       ))}
       {chart.xLabels.map((l, i) =>
         i === 0 || i === chart.xLabels.length - 1 ? (
-          <text key={l + i} className="v-cat" x={px(i)} y="140" textAnchor={i === 0 ? "start" : "end"}>
+          <text key={l + i} className="v-cat" x={px(i)} y="140" textAnchor={i === 0 ? "start" : "middle"}>
             {l}
           </text>
         ) : null
@@ -137,7 +150,7 @@ function LineChart({ chart }: { chart: Extract<ChartSpec, { kind: "line" }> }) {
 function AreaChart({ chart }: { chart: Extract<ChartSpec, { kind: "area" }> }) {
   const max = niceMax(chart.values);
   const n = chart.values.length;
-  const px = (i: number) => 12 + (i * 246) / Math.max(n - 1, 1);
+  const px = (i: number) => 12 + (i * 210) / Math.max(n - 1, 1);
   const py = (v: number) => 122 - (v / max) * 104;
   const line = chart.values.map((v, i) => `${px(i)},${py(v)}`).join(" ");
 
@@ -147,6 +160,9 @@ function AreaChart({ chart }: { chart: Extract<ChartSpec, { kind: "area" }> }) {
       <polygon className="v-area" style={{ fill: "var(--t1)" }} points={`${line} ${px(n - 1)},122 ${px(0)},122`} />
       <polyline className="v-line" style={{ stroke: "var(--t1)" }} points={line} />
       <circle cx={px(n - 1)} cy={py(chart.values[n - 1])} r="4" fill="var(--t1)" stroke="var(--s2)" strokeWidth="2" />
+      <text className="v-val" x={px(n - 1) + 8} y={py(chart.values[n - 1]) + 4}>
+        {fmt(chart.values[n - 1])}
+      </text>
       {chart.xLabels.map((l, i) =>
         i === 0 || i === chart.xLabels.length - 1 ? (
           <text key={l + i} className="v-cat" x={px(i)} y="140" textAnchor={i === 0 ? "start" : "end"}>
@@ -208,7 +224,10 @@ function DonutChart({ chart }: { chart: Extract<ChartSpec, { kind: "donut" }> })
 function WaffleChart({ chart }: { chart: Extract<ChartSpec, { kind: "waffle" }> }) {
   const filled = Math.round(chart.percent);
   return (
-    <svg className="bento-viz" viewBox="0 0 150 150" preserveAspectRatio="xMidYMid meet" role="img">
+    <svg className="bento-viz" viewBox="0 0 150 170" preserveAspectRatio="xMidYMid meet" role="img">
+      <text className="v-val" x="75" y="164" textAnchor="middle" style={{ fontSize: 15 }}>
+        {filled} in 100
+      </text>
       {Array.from({ length: 100 }, (_, i) => (
         <rect
           key={i}
@@ -251,7 +270,7 @@ function DivergingChart({ chart }: { chart: Extract<ChartSpec, { kind: "divergin
               fill={positive ? "var(--positive)" : "var(--negative)"}
             />
             <text className="v-val" x={positive ? mid + w + 6 : mid - w - 6} y={y + barH - 2} textAnchor={positive ? "start" : "end"}>
-              {p.value > 0 ? `+${p.value}` : p.value}
+              {p.value > 0 ? `+${fmt(p.value)}` : fmt(p.value)}
             </text>
           </g>
         );
@@ -267,17 +286,26 @@ function BulletChart({ chart }: { chart: Extract<ChartSpec, { kind: "bullet" }> 
     <svg className="bento-viz" viewBox="0 0 270 150" preserveAspectRatio="xMidYMid meet" role="img">
       {chart.items.map((item, i) => {
         const scale = Math.max(item.actual, item.target) * 1.15 || 1;
+        const TRACK = 196;
         const y = i * rowH + 6;
-        const w = (item.actual / scale) * 260;
-        const tx = 4 + (item.target / scale) * 260;
+        const w = (item.actual / scale) * TRACK;
+        const tx = 4 + (item.target / scale) * TRACK;
         return (
           <g key={item.label + i}>
             <text className="v-cat" x="4" y={y + 10}>
               {item.label}
             </text>
-            <rect x="4" y={y + 15} width="260" height="14" rx="4" fill="var(--border)" />
+            <rect x="4" y={y + 15} width={TRACK} height="14" rx="4" fill="var(--border)" />
             <rect x="4" y={y + 15} width={w} height="14" rx="4" fill="var(--t1)" />
             <line x1={tx} y1={y + 11} x2={tx} y2={y + 33} stroke="var(--text)" strokeWidth="2" />
+            {/* "actual of target" — the whole point of a bullet chart is the
+                comparison, which the bar and tick alone leave unquantified. */}
+            <text className="v-val" x={TRACK + 12} y={y + 26}>
+              {fmt(item.actual)}
+            </text>
+            <text className="v-cat" x={TRACK + 12} y={y + 38}>
+              of {fmt(item.target)}
+            </text>
           </g>
         );
       })}
@@ -311,23 +339,52 @@ function DumbbellChart({ chart }: { chart: Extract<ChartSpec, { kind: "dumbbell"
   );
 }
 
-/** Ordered stages take an ordinal ramp — one hue, stepping down. */
+/**
+ * Ordered stages take an ordinal ramp — one hue, stepping down.
+ *
+ * The label placement is measured, not assumed. A funnel's bars taper with the
+ * value, so a label centred at full width spills off the narrow lower bars and
+ * — being in the on-tone colour — lands as light text on the light slide. So:
+ * fit it inside when there is room, otherwise move it past the bar's end in the
+ * normal text colour. Never clipped, never unreadable.
+ */
 function FunnelChart({ chart }: { chart: Extract<ChartSpec, { kind: "funnel" }> }) {
   const rowH = 144 / chart.stages.length;
   const top = chart.stages[0]?.value || 1;
+  const FONT = 11;
 
   return (
     <svg className="bento-viz" viewBox="0 0 270 150" preserveAspectRatio="xMidYMid meet" role="img">
       {chart.stages.map((s, i) => {
-        const w = Math.max((s.value / top) * 258, 40);
+        const w = Math.max((s.value / top) * 258, 26);
         const y = i * rowH + 3;
         const h = Math.min(rowH - 6, 26);
+        const x = (270 - w) / 2;
+        const text = `${s.label} · ${fmt(s.value)}`;
+        // ~0.53em average advance for Geist at these sizes.
+        const textW = text.length * FONT * 0.53;
+        const fitsInside = textW + 14 <= w;
         return (
           <g key={s.label + i}>
-            <rect x={(270 - w) / 2} y={y} width={w} height={h} rx="4" fill="var(--t1)" opacity={1 - i * 0.18} />
-            <text className="v-val" x="135" y={y + h / 2 + 4} textAnchor="middle" style={{ fill: "var(--on-tone)" }}>
-              {s.label} · {s.value}
-            </text>
+            <rect x={x} y={y} width={w} height={h} rx="4" fill="var(--t1)" opacity={1 - i * 0.16} />
+            {fitsInside ? (
+              <text
+                x={x + w / 2}
+                y={y + h / 2 + 4}
+                textAnchor="middle"
+                style={{ fill: "var(--on-tone)", fontSize: FONT, fontWeight: 700 }}
+              >
+                {text}
+              </text>
+            ) : (
+              <text
+                x={x + w + 8}
+                y={y + h / 2 + 4}
+                style={{ fill: "var(--text)", fontSize: FONT, fontWeight: 700 }}
+              >
+                {text}
+              </text>
+            )}
           </g>
         );
       })}

@@ -357,27 +357,37 @@ function drawChart(slide: any, chart: ChartSpec, r: { x: number; y: number; w: n
       const rowH = box.h / chart.stages.length;
       const top = chart.stages[0]?.value || 1;
       chart.stages.forEach((s, i) => {
-        const w = Math.max((s.value / top) * box.w, box.w * 0.25);
+        const w = Math.max((s.value / top) * box.w, box.w * 0.12);
+        const x = box.x + (box.w - w) / 2;
+        const h = rowH * 0.76;
         slide.addShape("roundRect", {
-          x: box.x + (box.w - w) / 2,
+          x,
           y: box.y + rowH * i,
           w,
-          h: rowH * 0.76,
+          h,
           rectRadius: 0.04,
-          fill: { color: bar, transparency: i * 16 },
+          fill: { color: bar, transparency: i * 14 },
           line: { type: "none" },
         });
-        slide.addText(`${s.label} · ${s.value}`, {
-          x: box.x,
-          y: box.y + rowH * i,
-          w: box.w,
-          h: rowH * 0.76,
-          fontSize: 10,
-          bold: true,
-          align: "center",
-          valign: "middle",
-          color: p.onTone,
-        });
+        // Same measured placement as the DOM funnel: inside the bar when it
+        // fits, past the end in normal ink when it doesn't. A centred label on
+        // a tapered bar becomes on-tone text on the slide background.
+        const text = `${s.label} · ${s.value}`;
+        const textW = (text.length * 10 * 0.53) / 72; // inches at 10pt
+        if (textW + 0.12 <= w) {
+          slide.addText(text, {
+            x, y: box.y + rowH * i, w, h,
+            fontSize: 10, bold: true, align: "center", valign: "middle", color: p.onTone,
+          });
+        } else {
+          slide.addText(text, {
+            x: x + w + 0.06,
+            y: box.y + rowH * i,
+            w: Math.max(box.x + box.w - (x + w) - 0.06, 0.5),
+            h,
+            fontSize: 10, bold: true, align: "left", valign: "middle", color: ink,
+          });
+        }
       });
       return;
     }
