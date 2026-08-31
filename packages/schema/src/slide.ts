@@ -12,9 +12,33 @@ import { z } from "zod";
  * a web card would, and overflow is this system's worst failure mode.
  */
 
-const micro = z.string().min(1).max(24); // eyebrow / label
-const short = z.string().min(1).max(38); // headings inside a tile
-const line = z.string().min(1).max(96); // one supporting sentence
+/**
+ * Words that mean the sentence hasn't finished. If a field ends on one of
+ * these, or on dangling punctuation, the model ran at the character limit and
+ * stopped mid-thought — "control shifts to cost,", "LFP packs can cost about".
+ *
+ * Instructing the model not to do this does not work; rejecting it does. A
+ * failure here comes back through the repair turn with the message below, and
+ * the model rewrites the field shorter instead of truncating it.
+ */
+const DANGLING =
+  /(^|\s)(and|or|but|to|of|the|a|an|with|for|in|on|at|by|from|as|that|which|into|per|than|about|over|under|across)\s*$|[,;:\-–—/&+]\s*$/i;
+
+function complete(max: number, description: string) {
+  return z
+    .string()
+    .min(1)
+    .max(max)
+    .refine((value) => !DANGLING.test(value.trim()), {
+      message:
+        "This text stops mid-thought — it ends on a dangling word or punctuation. Rewrite it as a shorter COMPLETE phrase rather than running to the character limit.",
+    })
+    .describe(description);
+}
+
+const micro = z.string().min(1).max(24); // eyebrow / label — too short to dangle
+const short = complete(38, "A heading as a complete phrase, not a truncated sentence.");
+const line = complete(96, "One complete supporting sentence.");
 
 /**
  * A display number, not a sentence. Descriptions here are load-bearing:
@@ -31,6 +55,16 @@ const statValue = z
 const statLabel = micro.describe(
   'What the number measures, 1-3 words, e.g. "Parameters" or "Context window".'
 );
+
+/**
+ * For fields that hold a PHRASE rather than a label.
+ *
+ * At `micro`'s 24 characters the model reliably wrote to the limit and stopped
+ * mid-thought — "LFP packs can cost about", "New cell lines start in". A label
+ * fits in 24; a phrase does not, and a truncated phrase is worse than a short
+ * one. 34 plus an explicit instruction fixes it.
+ */
+const phrase = complete(34, "A complete short phrase, 3-6 words. Never cut off mid-word or mid-thought.");
 
 /* ------------------------------------------------------------------ */
 /* Charts                                                              */
@@ -194,7 +228,7 @@ const statTile = z.object({ label: statLabel, value: statValue });
 export const HeroSlideSchema = z.object({
   archetype: z.literal("hero"),
   eyebrow: micro.optional(),
-  title: z.string().min(1).max(48),
+  title: complete(48, "The deck title as a complete phrase — never trail off."),
   subtitle: line,
   stats: z.array(statTile).length(2),
   footerLeft: micro.optional(),
@@ -220,7 +254,7 @@ export const QuadrantSlideSchema = z.object({
 export const FeatureGridSlideSchema = z.object({
   archetype: z.literal("featureGrid"),
   label: micro,
-  statement: z.string().min(1).max(84),
+  statement: complete(84, "One complete sentence — the slide's single claim."),
   features: z.array(z.object({ heading: short })).length(4),
 });
 
@@ -242,7 +276,7 @@ export const DiagramSlideSchema = z.object({
     .max(3)
     .describe("The 2-3 overlapping sets, each named in 1-3 words."),
   overlapLabel: micro.describe("What sits in the intersection, 1-3 words."),
-  statement: z.string().min(1).max(72),
+  statement: complete(72, "One complete sentence about what the overlap means."),
   proof: statTile.optional().describe("One supporting number. Omit if there isn't a real one."),
 });
 
@@ -254,7 +288,7 @@ export const ProcessSlideSchema = z.object({
     .array(
       z.object({
         label: micro.describe('The step name, 1-2 words, e.g. "Tokenize".'),
-        detail: micro.describe('How it happens, under 24 characters, e.g. "Text → subword IDs".'),
+        detail: phrase.describe('How it happens, 2-4 words, e.g. "Text → subword IDs".'),
       })
     )
     .min(3)
@@ -272,7 +306,7 @@ export const TimelineSlideSchema = z.object({
   variant: z.enum(["series", "swimlane", "rail"]),
   label: micro,
   milestones: z
-    .array(z.object({ when: z.string().max(12), label: short, detail: micro }))
+    .array(z.object({ when: z.string().max(12), label: short, detail: phrase }))
     .min(3)
     .max(5),
   /** required by the "series" variant: the metric the milestones sit on */
@@ -292,42 +326,26 @@ export const TimelineSlideSchema = z.object({
     .optional(),
 });
 
-/**
- * `point` is wider than `micro` on purpose. At 24 characters the model
- * reliably ran to the limit and stopped mid-word ("Scores many candidate "),
- * because a comparison point is a real phrase rather than a label. 34 gives
- * it room to finish the thought.
- */
-const point = z
-  .string()
-  .min(1)
-  .max(34)
-  .describe("A complete short phrase, 3-6 words. Never cut off mid-word.");
-
 export const ComparisonSlideSchema = z.object({
   archetype: z.literal("comparison"),
   ours: z.object({
     label: micro,
     heading: short,
-    points: z.array(point).min(2).max(4),
+    points: z.array(phrase).min(2).max(4),
   }),
   theirs: z.object({
     label: micro,
     heading: short,
-    points: z.array(point).min(2).max(3),
+    points: z.array(phrase).min(2).max(3),
   }),
-  proof: z.object({ label: micro, value: statValue, note: micro }),
+  proof: z.object({ label: micro, value: statValue, note: phrase }),
 });
 
 export const ClosingSlideSchema = z.object({
   archetype: z.literal("closing"),
-  title: z.string().min(1).max(48),
+  title: complete(48, "A complete closing line."),
   subtitle: line,
-  cta: z
-    .string()
-    .min(1)
-    .max(36)
-    .describe('The single next action, e.g. "Book a pilot" or "Read the paper".'),
+  cta: complete(36, 'The single next action, e.g. "Book a pilot" or "Read the paper".'),
   stats: z.array(statTile).max(2).optional().describe("At most two closing numbers. Omit if none."),
 });
 

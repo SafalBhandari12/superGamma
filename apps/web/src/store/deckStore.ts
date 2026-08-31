@@ -1,4 +1,4 @@
-import { DEFAULT_THEME_ID, type GeneratedOutline, type Slide, type ThemeId } from "@supergamma/schema";
+import { DEFAULT_THEME_ID, type Outline, type Slide, type ThemeId } from "@supergamma/schema";
 import { create } from "zustand";
 import { readSSE } from "../lib/sse";
 
@@ -8,6 +8,8 @@ type Status = "idle" | "generating" | "done" | "error";
 
 interface DeckState {
   status: Status;
+  /** sparse, indexed by outline position — `slides` is this compacted */
+  ordered: (Slide | undefined)[];
   deckTitle: string | null;
   expectedSlideCount: number;
   slides: Slide[];
@@ -22,6 +24,7 @@ interface DeckState {
 
 export const useDeckStore = create<DeckState>((set, get) => ({
   status: "idle",
+  ordered: [],
   deckTitle: null,
   expectedSlideCount: 0,
   slides: [],
@@ -36,6 +39,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   async generate(prompt: string) {
     set({
       status: "generating",
+      ordered: [],
       deckTitle: null,
       expectedSlideCount: 0,
       slides: [],
@@ -54,11 +58,15 @@ export const useDeckStore = create<DeckState>((set, get) => ({
 
       for await (const { event, data } of readSSE(res)) {
         if (event === "outline") {
-          const outline = data as GeneratedOutline;
-          set({ deckTitle: outline.deckTitle, expectedSlideCount: outline.slideOutline.length });
+          const outline = data as Outline;
+          set({ deckTitle: outline.deckTitle, expectedSlideCount: outline.slides.length });
         } else if (event === "slide") {
-          const { slide } = data as { index: number; slide: Slide };
-          set({ slides: [...get().slides, slide] });
+          // Slides are generated in parallel, so events can land out of order.
+          // Place each at its outline index and drop the gaps for display.
+          const { index, slide } = data as { index: number; slide: Slide };
+          const next = [...get().ordered];
+          next[index] = slide;
+          set({ ordered: next, slides: next.filter(Boolean) as Slide[] });
         } else if (event === "done") {
           const { deckId } = data as { deckId: string };
           set({ status: "done", deckId });

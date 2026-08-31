@@ -15,9 +15,21 @@ export const GRID_ROWS = 4;
 /** Slide geometry in inches (16:9), matching the existing pptx export. */
 export const SLIDE_W = 10;
 export const SLIDE_H = 5.63;
-export const MARGIN = 0.42;
-export const GAP = 0.16;
-export const RADIUS = 0.11;
+// Matched to the published design artifact: 22px padding, 12px gap and a
+// 14px tile radius on a ~1360px-wide slide, expressed in inches.
+export const MARGIN = 0.16;
+export const GAP = 0.09;
+export const RADIUS = 0.1;
+
+/**
+ * The same geometry expressed as percentages, so the CSS renderer and the pptx
+ * exporter cannot drift on spacing either. CSS resolves a percentage padding
+ * against the WIDTH on both axes, while a grid's row-gap resolves against the
+ * height — hence the separate row value.
+ */
+export const PAD_PCT = (MARGIN / SLIDE_W) * 100;
+export const COL_GAP_PCT = (GAP / SLIDE_W) * 100;
+export const ROW_GAP_PCT = (GAP / SLIDE_H) * 100;
 
 const COL_W = (SLIDE_W - MARGIN * 2 - GAP * (GRID_COLS - 1)) / GRID_COLS;
 const ROW_H = (SLIDE_H - MARGIN * 2 - GAP * (GRID_ROWS - 1)) / GRID_ROWS;
@@ -39,7 +51,7 @@ export type TileSurface =
   | "tone4"
   | "tone5";
 
-export interface Tile {
+export interface GridTile {
   /** stable key the renderer maps content onto */
   id: string;
   /** 1-indexed grid position */
@@ -60,7 +72,7 @@ export interface TileRect {
 }
 
 /** Grid units → inches, for the pptx exporter. */
-export function tileRect(tile: Tile): TileRect {
+export function tileRect(tile: GridTile): TileRect {
   return {
     x: MARGIN + (tile.col - 1) * (COL_W + GAP),
     y: MARGIN + (tile.row - 1) * (ROW_H + GAP),
@@ -77,7 +89,7 @@ const t = (
   rowSpan: number,
   surface: TileSurface,
   anchor = false
-): Tile => ({ id, col, row, colSpan, rowSpan, surface, anchor });
+): GridTile => ({ id, col, row, colSpan, rowSpan, surface, anchor });
 
 /**
  * Layouts are content-count aware: a slide with three supporting stats gets a
@@ -85,7 +97,7 @@ const t = (
  * what the tile holds. Every arrangement keeps one anchor at roughly twice the
  * area of the next-largest tile.
  */
-export function tilesFor(slide: Slide): Tile[] {
+export function tilesFor(slide: Slide): GridTile[] {
   switch (slide.archetype) {
     case "hero":
       return [
@@ -241,7 +253,7 @@ export function tilesFor(slide: Slide): Tile[] {
 }
 
 /** CSS grid shorthand for the web renderer. */
-export function tileGridArea(tile: Tile): { gridColumn: string; gridRow: string } {
+export function tileGridArea(tile: GridTile): { gridColumn: string; gridRow: string } {
   return {
     gridColumn: `${tile.col} / ${tile.col + tile.colSpan}`,
     gridRow: `${tile.row} / ${tile.row + tile.rowSpan}`,

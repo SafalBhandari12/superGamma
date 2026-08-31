@@ -1,53 +1,48 @@
 import type { Slide } from "@supergamma/schema";
 import {
-  AgendaLayout,
-  BigStatLayout,
-  BulletsLayout,
-  ChartLayout,
-  ComparisonLayout,
-  ProcessLayout,
-  QuadrantLayout,
-  QuoteLayout,
-  TableLayout,
-  TeamLayout,
-  TimelineLayout,
-  TitleLayout,
-  TwoColumnLayout,
-} from "./layouts.js";
+  ChartSlide,
+  ClosingSlide,
+  ComparisonSlide,
+  DiagramSlide,
+  FeatureGridSlide,
+  HeroSlide,
+  ProcessSlide,
+  QuadrantSlide,
+  StatGridSlide,
+  TimelineSlide,
+} from "./archetypes.js";
 
 /**
- * The only place that switches on `slide.layout`. Adding a layout means
- * adding a case here — the compiler will complain if you forget, since
- * `slide` is a discriminated union and this switch is exhaustive.
+ * The only place that switches on `slide.archetype`. Adding an archetype means
+ * adding a case here — the compiler enforces it, since `slide` is a
+ * discriminated union and this switch is exhaustive.
  */
 export function SlideRenderer({ slide }: { slide: Slide }) {
-  switch (slide.layout) {
-    case "title":
-      return <TitleLayout slide={slide} />;
-    case "bullets":
-      return <BulletsLayout slide={slide} />;
-    case "two-column":
-      return <TwoColumnLayout slide={slide} />;
-    case "big-stat":
-      return <BigStatLayout slide={slide} />;
-    case "quote":
-      return <QuoteLayout slide={slide} />;
-    case "agenda":
-      return <AgendaLayout slide={slide} />;
-    case "timeline":
-      return <TimelineLayout slide={slide} />;
-    case "table":
-      return <TableLayout slide={slide} />;
-    case "chart":
-      return <ChartLayout slide={slide} />;
-    case "comparison":
-      return <ComparisonLayout slide={slide} />;
+  return <div className="bento-slide">{renderArchetype(slide)}</div>;
+}
+
+function renderArchetype(slide: Slide) {
+  switch (slide.archetype) {
+    case "hero":
+      return <HeroSlide slide={slide} />;
+    case "statGrid":
+      return <StatGridSlide slide={slide} />;
     case "quadrant":
-      return <QuadrantLayout slide={slide} />;
+      return <QuadrantSlide slide={slide} />;
+    case "featureGrid":
+      return <FeatureGridSlide slide={slide} />;
+    case "chart":
+      return <ChartSlide slide={slide} />;
+    case "diagram":
+      return <DiagramSlide slide={slide} />;
     case "process":
-      return <ProcessLayout slide={slide} />;
-    case "team":
-      return <TeamLayout slide={slide} />;
+      return <ProcessSlide slide={slide} />;
+    case "timeline":
+      return <TimelineSlide slide={slide} />;
+    case "comparison":
+      return <ComparisonSlide slide={slide} />;
+    case "closing":
+      return <ClosingSlide slide={slide} />;
     default: {
       const _exhaustive: never = slide;
       return _exhaustive;

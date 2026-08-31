@@ -148,6 +148,8 @@ Writing rules — this is a slide, not a document:
   worst failure mode in this system.
 - Never write up to the limit and stop mid-thought. A complete short phrase always beats a
   truncated long one.
+- Write every field in the SAME LANGUAGE as the user's topic, and never mix scripts within a
+  slide. An English topic produces an entirely English deck.
 - Headings are phrases, not sentences. Labels are 1-3 words. Never end a label with a period.
 - Numbers belong in the stat/value fields as short display strings ("40%", "$12M", "6.2M"),
   never spelled out in prose.
