@@ -1,19 +1,20 @@
-import { DEFAULT_THEME_ID, ThemeIdSchema } from "@supergamma/schema";
+import { DEFAULT_THEME_ID, THEMES, THEME_IDS, ThemeIdSchema } from "@supergamma/schema";
 import type { Request, Response } from "express";
 import { z } from "zod";
-import { generateDeck, getDeckById } from "../services/deckService.js";
+import { generateDeck, getDeckById, retheme } from "../services/deckService.js";
+import { deckStore } from "../store.js";
 
 const GenerateRequestSchema = z.object({
-  prompt: z.string().min(3).max(500),
+  prompt: z.string().min(3).max(2000),
   themeId: ThemeIdSchema.default(DEFAULT_THEME_ID),
 });
 
 /**
  * `.parse()` (not `.safeParse()`) so a bad body throws a ZodError that
  * asyncHandler forwards to the global error handler — that's the only
- * validation step here that can still become an HTTP status, since it
- * runs before the SSE headers go out. Once streaming starts, a failure
- * can only be reported as an "error" event on the stream itself.
+ * validation step here that can still become an HTTP status, since it runs
+ * before the SSE headers go out. Once streaming starts, a failure can only
+ * be reported as an "error" event on the stream itself.
  */
 export async function generateDeckHandler(req: Request, res: Response) {
   const { prompt, themeId } = GenerateRequestSchema.parse(req.body);
@@ -37,6 +38,38 @@ export async function generateDeckHandler(req: Request, res: Response) {
 }
 
 export async function getDeckHandler(req: Request, res: Response) {
-  const deck = getDeckById(req.params.id);
-  res.json(deck);
+  res.json(getDeckById(req.params.id));
+}
+
+export async function listDecksHandler(_req: Request, res: Response) {
+  res.json(
+    deckStore.list().map(({ id, title, prompt, createdAt, theme, slides }) => ({
+      id,
+      title,
+      prompt,
+      createdAt,
+      themeId: theme.id,
+      slideCount: slides.length,
+    }))
+  );
+}
+
+const RethemeRequestSchema = z.object({ themeId: ThemeIdSchema });
+
+/** Swapping themes never touches content, so it's a plain mutation — no LLM call. */
+export async function rethemeDeckHandler(req: Request, res: Response) {
+  const { themeId } = RethemeRequestSchema.parse(req.body);
+  res.json(retheme(req.params.id, themeId));
+}
+
+export async function listThemesHandler(_req: Request, res: Response) {
+  res.json(
+    THEME_IDS.map((id) => ({
+      id,
+      name: THEMES[id].name,
+      mode: THEMES[id].mode,
+      canvas: THEMES[id].colors.canvas,
+      tones: THEMES[id].colors.tones,
+    }))
+  );
 }

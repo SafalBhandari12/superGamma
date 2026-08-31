@@ -1,50 +1,50 @@
 import { z } from "zod";
-import { Slide, SlideLayout, SlideLayoutEnum, SlideSchema } from "./slide.js";
-import { Theme, ThemeSchema } from "./theme.js";
+import { ArchetypeEnum, SlideSchema, type Archetype, type Slide } from "./slide.js";
+import { ThemeSchema, type Theme } from "./theme.js";
 
 /**
- * Deck and GeneratedOutline are hand-written interfaces, not `z.infer`.
- * Both schemas nest an array around another non-trivial schema (an array
- * of a discriminated union, and an array of an object-with-enum), which
- * is deep enough that TS language-service type-checking (not `tsc`
- * itself — it has more budget) sometimes gives up and reports `unknown`
- * at consumption sites. Pinning the exported type to a plain interface
- * means consumers see that interface, not a live inference computation.
+ * Same rationale as the original DeckSchema: hand-written interfaces rather
+ * than `z.infer`, because these nest arrays around discriminated unions and
+ * the TS language service gives up and reports `unknown` at call sites.
  */
 export interface Deck {
   id: string;
   title: string;
+  prompt: string;
   theme: Theme;
   slides: Slide[];
+  createdAt: string;
 }
 
 export const DeckSchema: z.ZodType<Deck> = z.object({
   id: z.string(),
   title: z.string().min(1).max(120),
+  prompt: z.string().min(1).max(2000),
   theme: ThemeSchema,
-  slides: z.array(SlideSchema).min(1).max(30),
+  slides: z.array(SlideSchema).min(1).max(24),
+  createdAt: z.string(),
 });
 
-/**
- * What the model actually returns per generation call: no id, no theme
- * (theme is picked separately, content shouldn't decide it).
- */
-export const GeneratedSlideSchema = SlideSchema;
-
-export interface GeneratedOutline {
-  deckTitle: string;
-  slideOutline: { layout: SlideLayout; summary: string }[];
+export interface OutlineItem {
+  archetype: Archetype;
+  /** what this slide has to say — a pointer for the fill step, not the copy */
+  brief: string;
 }
 
-export const GeneratedOutlineSchema: z.ZodType<GeneratedOutline> = z.object({
-  deckTitle: z.string().min(1).max(120),
-  slideOutline: z
+export interface Outline {
+  deckTitle: string;
+  slides: OutlineItem[];
+}
+
+export const OutlineSchema: z.ZodType<Outline> = z.object({
+  deckTitle: z.string().min(1).max(80),
+  slides: z
     .array(
       z.object({
-        layout: SlideLayoutEnum,
-        summary: z.string().min(1).max(140),
+        archetype: ArchetypeEnum,
+        brief: z.string().min(1).max(180),
       })
     )
-    .min(1)
-    .max(30),
+    .min(4)
+    .max(12),
 });

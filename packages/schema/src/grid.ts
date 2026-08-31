@@ -1,4 +1,4 @@
-import type { BentoSlide } from "./bento.js";
+import type { Slide } from "./slide.js";
 
 /**
  * THE single source of layout truth.
@@ -39,7 +39,7 @@ export type TileSurface =
   | "tone4"
   | "tone5";
 
-export interface BentoTile {
+export interface Tile {
   /** stable key the renderer maps content onto */
   id: string;
   /** 1-indexed grid position */
@@ -60,7 +60,7 @@ export interface TileRect {
 }
 
 /** Grid units → inches, for the pptx exporter. */
-export function tileRect(tile: BentoTile): TileRect {
+export function tileRect(tile: Tile): TileRect {
   return {
     x: MARGIN + (tile.col - 1) * (COL_W + GAP),
     y: MARGIN + (tile.row - 1) * (ROW_H + GAP),
@@ -77,7 +77,7 @@ const t = (
   rowSpan: number,
   surface: TileSurface,
   anchor = false
-): BentoTile => ({ id, col, row, colSpan, rowSpan, surface, anchor });
+): Tile => ({ id, col, row, colSpan, rowSpan, surface, anchor });
 
 /**
  * Layouts are content-count aware: a slide with three supporting stats gets a
@@ -85,7 +85,7 @@ const t = (
  * what the tile holds. Every arrangement keeps one anchor at roughly twice the
  * area of the next-largest tile.
  */
-export function tilesFor(slide: BentoSlide): BentoTile[] {
+export function tilesFor(slide: Slide): Tile[] {
   switch (slide.archetype) {
     case "hero":
       return [
@@ -241,7 +241,7 @@ export function tilesFor(slide: BentoSlide): BentoTile[] {
 }
 
 /** CSS grid shorthand for the web renderer. */
-export function tileGridArea(tile: BentoTile): { gridColumn: string; gridRow: string } {
+export function tileGridArea(tile: Tile): { gridColumn: string; gridRow: string } {
   return {
     gridColumn: `${tile.col} / ${tile.col + tile.colSpan}`,
     gridRow: `${tile.row} / ${tile.row + tile.rowSpan}`,

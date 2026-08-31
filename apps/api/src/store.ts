@@ -1,4 +1,4 @@
-import type { BentoDeck, Deck } from "@supergamma/schema";
+import type { Deck } from "@supergamma/schema";
 
 /**
  * In-memory only. The MVP's job is to prove the generation pipeline,
@@ -14,18 +14,7 @@ export const deckStore = {
   get(id: string): Deck | undefined {
     return decks.get(id);
   },
-};
-
-const bentoDecks = new Map<string, BentoDeck>();
-
-export const bentoDeckStore = {
-  save(deck: BentoDeck) {
-    bentoDecks.set(deck.id, deck);
-  },
-  get(id: string): BentoDeck | undefined {
-    return bentoDecks.get(id);
-  },
-  list(): BentoDeck[] {
-    return [...bentoDecks.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  list(): Deck[] {
+    return [...decks.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 };
