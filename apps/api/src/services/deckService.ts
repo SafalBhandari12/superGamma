@@ -8,7 +8,7 @@ import {
   type ThemeId,
 } from "@supergamma/schema";
 import { NotFoundError } from "../errors/AppError.js";
-import { generateOutline, generateSlide } from "../llm/generate.js";
+import { generateOutline, generateSlide, resetCostTracking, logTotalCost } from "../llm/generate.js";
 import { deckStore } from "../store.js";
 
 export type DeckEvent =
@@ -30,6 +30,7 @@ export async function generateDeck(
   themeId: ThemeId,
   onEvent: (event: DeckEvent) => void
 ): Promise<Deck> {
+  resetCostTracking();
   const outline = await generateOutline(prompt);
   onEvent({ type: "outline", data: outline });
 
@@ -67,6 +68,7 @@ export async function generateDeck(
   });
 
   deckStore.save(deck);
+  logTotalCost();
   onEvent({ type: "done", data: { deckId: deck.id } });
   return deck;
 }

@@ -20,4 +20,16 @@ export const config = {
   openaiBaseUrl: process.env.OPENAI_BASE_URL || undefined,
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
   webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:3000",
+
+  /** Where this API itself is reachable — Better Auth needs it to build OAuth callback/redirect URLs. */
+  apiBaseUrl: process.env.API_BASE_URL ?? `http://localhost:${Number(process.env.PORT ?? 4000)}`,
+
+  databaseUrl: required("DATABASE_URL"),
+  authSecret: required("BETTER_AUTH_SECRET"),
+  googleClientId: required("GOOGLE_CLIENT_ID"),
+  googleClientSecret: required("GOOGLE_CLIENT_SECRET"),
+
+  mailerooApiKey: required("MAILEROO_API_KEY"),
+  mailFromEmail: required("MAIL_FROM_EMAIL"),
+  mailFromName: process.env.MAIL_FROM_NAME ?? "superGamma",
 };

@@ -72,6 +72,31 @@ millions beside subscriber counts in thousands makes the smaller series look fla
 correlation. Plot the one measure the slide is about, or index every series to a common base.
 `.trim();
 
+// USD per 1M tokens for OPENAI_MODEL (currently gpt-5.4-mini). Update if the
+// deployment or its pricing changes.
+const PRICE_PER_1M_INPUT = 0.15;
+const PRICE_PER_1M_OUTPUT = 0.6;
+
+// Running total for the deck currently being generated. resetCostTracking()
+// starts a new deck's tally; logTotalCost() prints and clears it.
+let totalCost = 0;
+
+function addCost(usage: { prompt_tokens: number; completion_tokens: number } | undefined) {
+  if (!usage) return;
+  totalCost +=
+    (usage.prompt_tokens / 1_000_000) * PRICE_PER_1M_INPUT +
+    (usage.completion_tokens / 1_000_000) * PRICE_PER_1M_OUTPUT;
+}
+
+export function resetCostTracking() {
+  totalCost = 0;
+}
+
+export function logTotalCost() {
+  console.log(`[llm cost] total: $${totalCost.toFixed(4)}`);
+  totalCost = 0;
+}
+
 async function callStructured<T>(
   schema: z.ZodType<T>,
   responseFormat: {
@@ -93,6 +118,8 @@ async function callStructured<T>(
       response_format: responseFormat,
       temperature: 0.5,
     });
+
+    addCost(completion.usage);
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     let parsed: unknown;
