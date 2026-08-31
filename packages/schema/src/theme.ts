@@ -31,17 +31,17 @@ export const THEMES = {
   classic: {
     name: "Classic",
     colors: { background: "#ffffff", text: "#111111", accent: "#4f46e5", muted: "#6b7280" },
-    fonts: { heading: "Inter", body: "Inter" },
+    fonts: { heading: "Poppins", body: "Inter" },
   },
   midnight: {
     name: "Midnight",
     colors: { background: "#0f1115", text: "#f5f5f7", accent: "#818cf8", muted: "#9ca3af" },
-    fonts: { heading: "Inter", body: "Inter" },
+    fonts: { heading: "Poppins", body: "Inter" },
   },
   sunset: {
     name: "Sunset",
     colors: { background: "#fff8f0", text: "#2a1a12", accent: "#ea580c", muted: "#a8785a" },
-    fonts: { heading: "Georgia", body: "Inter" },
+    fonts: { heading: "Playfair Display", body: "Inter" },
   },
   mono: {
     name: "Mono",

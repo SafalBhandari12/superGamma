@@ -32,18 +32,6 @@ function stripListMarker(text: string): string {
   return text.replace(/^[\s•◦▪‣∙*-]+/, "");
 }
 
-/** Blends `fgHex` into `bgHex` at `pct` opacity (0-1) — a precomputed color-mix(). */
-function tint(fgHex: string, bgHex: string, pct: number): string {
-  const fg = parseInt(fgHex, 16);
-  const bg = parseInt(bgHex, 16);
-  const mix = (shift: number) => {
-    const f = (fg >> shift) & 255;
-    const b = (bg >> shift) & 255;
-    return Math.round(f * pct + b * (1 - pct));
-  };
-  return [mix(16), mix(8), mix(0)].map((v) => v.toString(16).padStart(2, "0")).join("");
-}
-
 export async function exportDeckAsPptx(deck: Deck): Promise<void> {
   const PptxGenJS = (await import("pptxgenjs")).default;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,8 +52,6 @@ export async function exportDeckAsPptx(deck: Deck): Promise<void> {
     background,
     headingFont: fonts.heading,
     bodyFont: fonts.body,
-    accentTint: tint(accent, background, 0.08),
-    mutedTint: tint(muted, background, 0.1),
   };
 
   deck.slides.forEach((slide, i) => {
@@ -109,8 +95,6 @@ interface Palette {
   background: string;
   headingFont: string;
   bodyFont: string;
-  accentTint: string;
-  mutedTint: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -136,26 +120,23 @@ function addSlideContent(pSlide: any, slide: Slide, p: Palette) {
         color: p.text, fontFace: p.headingFont,
       });
       const rowH = 0.62;
-      const gap = 0.14;
-      const startY = 1.45;
+      const startY = 1.5;
       slide.bullets.forEach((bullet, i) => {
-        const y = startY + i * (rowH + gap);
-        pSlide.addShape("roundRect", {
-          x: 0.7, y, w: 8.6, h: rowH, rectRadius: 0.04,
-          fill: { color: p.accentTint }, line: { type: "none" },
-        });
-        pSlide.addShape("roundRect", {
-          x: 0.95, y: y + rowH / 2 - 0.19, w: 0.38, h: 0.38, rectRadius: 0.03,
-          fill: { color: p.accent }, line: { type: "none" },
-        });
+        const y = startY + i * rowH;
         pSlide.addText(String(i + 1).padStart(2, "0"), {
-          x: 0.95, y: y + rowH / 2 - 0.19, w: 0.38, h: 0.38, fontSize: 11, bold: true,
-          color: p.background, fontFace: p.bodyFont, align: "center", valign: "middle",
+          x: 0.7, y, w: 0.6, h: rowH, fontSize: 18, bold: true,
+          color: p.accent, fontFace: p.headingFont, valign: "middle",
         });
         pSlide.addText(stripListMarker(bullet), {
-          x: 1.55, y, w: 7.5, h: rowH, fontSize: 18,
+          x: 1.4, y, w: 7.5, h: rowH, fontSize: 18,
           color: p.text, fontFace: p.bodyFont, valign: "middle",
         });
+        if (i < slide.bullets.length - 1) {
+          pSlide.addShape("line", {
+            x: 0.7, y: y + rowH, w: 8.6, h: 0,
+            line: { color: p.muted, width: 0.75, transparency: 70 },
+          });
+        }
       });
       return;
     }
@@ -164,20 +145,16 @@ function addSlideContent(pSlide: any, slide: Slide, p: Palette) {
         x: 0.7, y: 0.45, w: 8.6, h: 0.7, fontSize: 32, bold: true,
         color: p.text, fontFace: p.headingFont,
       });
-      const cols: { items: string[]; x: number; fill: string }[] = [
-        { items: slide.left, x: 0.7, fill: p.accentTint },
-        { items: slide.right, x: 5.15, fill: p.mutedTint },
+      const cols = [
+        { items: slide.left, x: 0.7 },
+        { items: slide.right, x: 5.15 },
       ];
-      const cardY = 1.45;
-      const cardW = 4.15;
-      const cardH = 3.75;
+      const cardY = 1.5;
+      const cardW = 4.0;
+      const cardH = 3.7;
       for (const col of cols) {
-        pSlide.addShape("roundRect", {
-          x: col.x, y: cardY, w: cardW, h: cardH, rectRadius: 0.04,
-          fill: { color: col.fill }, line: { type: "none" },
-        });
         pSlide.addShape("rect", {
-          x: col.x + 0.35, y: cardY + 0.35, w: 0.45, h: 0.08, fill: { color: p.accent }, line: { type: "none" },
+          x: col.x, y: cardY, w: 0.045, h: cardH, fill: { color: p.accent }, line: { type: "none" },
         });
         pSlide.addText(
           col.items.map((t) => ({
@@ -185,39 +162,34 @@ function addSlideContent(pSlide: any, slide: Slide, p: Palette) {
             options: { bullet: { code: "25CF", indent: 14 }, color: p.accent },
           })),
           {
-            x: col.x + 0.35, y: cardY + 0.7, w: cardW - 0.7, h: cardH - 1.0, fontSize: 15,
-            color: p.text, fontFace: p.bodyFont, valign: "top", paraSpaceAfter: 8,
+            x: col.x + 0.3, y: cardY, w: cardW - 0.3, h: cardH, fontSize: 15,
+            color: p.text, fontFace: p.bodyFont, valign: "top", paraSpaceAfter: 10,
           }
         );
       }
       return;
     }
     case "big-stat": {
-      pSlide.addShape("roundRect", {
-        x: 2.3, y: 1.4, w: 5.4, h: 1.9, rectRadius: 0.05,
-        fill: { color: p.accent }, line: { type: "none" },
-      });
       pSlide.addText(slide.stat, {
-        x: 2.3, y: 1.4, w: 5.4, h: 1.9, fontSize: 60, bold: true,
-        color: p.background, fontFace: p.headingFont, align: "center", valign: "middle",
+        x: 1.0, y: 1.1, w: 8.0, h: 1.9, fontSize: 72, bold: true,
+        color: p.accent, fontFace: p.headingFont, align: "center", valign: "middle",
+      });
+      pSlide.addShape("rect", {
+        x: 4.7, y: 3.05, w: 0.6, h: 0.06, fill: { color: p.accent }, line: { type: "none" },
       });
       pSlide.addText(slide.label, {
-        x: 2.0, y: 3.5, w: 6.0, h: 0.6, fontSize: 20, bold: true,
+        x: 2.0, y: 3.25, w: 6.0, h: 0.6, fontSize: 20, bold: true,
         color: p.text, fontFace: p.bodyFont, align: "center", valign: "middle",
       });
       if (slide.supportingText) {
         pSlide.addText(slide.supportingText, {
-          x: 1.7, y: 4.15, w: 6.6, h: 0.8, fontSize: 13,
+          x: 1.7, y: 3.9, w: 6.6, h: 0.8, fontSize: 13,
           color: p.muted, fontFace: p.bodyFont, align: "center",
         });
       }
       return;
     }
     case "quote": {
-      pSlide.addShape("roundRect", {
-        x: 1.2, y: 1.0, w: 7.6, h: 3.5, rectRadius: 0.04,
-        fill: { color: p.accentTint }, line: { type: "none" },
-      });
       pSlide.addShape("rect", { x: 1.2, y: 1.4, w: 0.08, h: 2.7, fill: { color: p.accent }, line: { type: "none" } });
       pSlide.addText(`"`, {
         x: 1.55, y: 1.1, w: 1.0, h: 0.9, fontSize: 54, bold: true,
@@ -248,20 +220,16 @@ function addSlideContent(pSlide: any, slide: Slide, p: Palette) {
         const row = Math.floor(i / cols);
         const x = 0.7 + col * (colW + 0.3);
         const y = 1.5 + row * rowH;
-        pSlide.addShape("roundRect", {
-          x, y, w: 0.42, h: 0.42, rectRadius: 0.03,
-          fill: { color: p.accent }, line: { type: "none" },
-        });
         pSlide.addText(String(i + 1).padStart(2, "0"), {
-          x, y, w: 0.42, h: 0.42, fontSize: 13, bold: true,
-          color: p.background, fontFace: p.bodyFont, align: "center", valign: "middle",
+          x, y: y - 0.08, w: 0.75, h: 0.55, fontSize: 28, bold: true,
+          color: p.accent, fontFace: p.headingFont, valign: "top",
         });
         pSlide.addText(item.title, {
-          x: x + 0.55, y: y - 0.05, w: colW - 0.6, h: 0.4, fontSize: 17, bold: true,
+          x: x + 0.8, y: y - 0.05, w: colW - 0.85, h: 0.4, fontSize: 17, bold: true,
           color: p.text, fontFace: p.headingFont, valign: "top",
         });
         pSlide.addText(item.description, {
-          x: x + 0.55, y: y + 0.35, w: colW - 0.6, h: 0.6, fontSize: 12,
+          x: x + 0.8, y: y + 0.35, w: colW - 0.85, h: 0.6, fontSize: 12,
           color: p.muted, fontFace: p.bodyFont, valign: "top",
         });
       });
@@ -303,29 +271,261 @@ function addSlideContent(pSlide: any, slide: Slide, p: Palette) {
         x: 0.7, y: 0.45, w: 8.6, h: 0.7, fontSize: 32, bold: true,
         color: p.text, fontFace: p.headingFont,
       });
+      const thinBorder = { type: "solid", color: p.muted, pt: 0.75 };
+      const accentBottom = { type: "solid", color: p.accent, pt: 1.5 };
       const headerRow = slide.columns.map((col) => ({
         text: col.toUpperCase(),
         options: {
-          fill: { color: p.accent }, color: p.background, bold: true,
+          fill: { color: p.background }, color: p.text, bold: true,
           fontFace: p.headingFont, fontSize: 13, charSpacing: 1,
+          border: [thinBorder, thinBorder, accentBottom, thinBorder],
         },
       }));
-      const bodyRows = slide.rows.map((row, ri) =>
+      const bodyRows = slide.rows.map((row) =>
         slide.columns.map((_, ci) => ({
           text: row[ci] ?? "",
           options: {
-            fill: { color: ri % 2 === 0 ? p.accentTint : p.background },
+            fill: { color: p.background },
             color: p.text,
             fontFace: p.bodyFont,
             fontSize: 14,
+            border: [thinBorder, thinBorder, thinBorder, thinBorder],
           },
         }))
       );
       pSlide.addTable([headerRow, ...bodyRows], {
         x: 0.7, y: 1.5, w: 8.6, h: 3.6,
-        border: { type: "none" }, autoPage: false, valign: "middle",
+        autoPage: false, valign: "middle",
+      });
+      return;
+    }
+    case "chart": {
+      pSlide.addText(slide.title, {
+        x: 0.7, y: 0.45, w: 8.6, h: 0.7, fontSize: 32, bold: true,
+        color: p.text, fontFace: p.headingFont,
+      });
+      if (slide.chartType === "bar") {
+        const n = slide.data.length;
+        const maxValue = Math.max(...slide.data.map((d) => d.value), 1);
+        const trackTop = 1.55;
+        const trackH = 3.0;
+        const baseline = trackTop + trackH;
+        const colW = 8.6 / n;
+        const barW = colW * 0.5;
+        slide.data.forEach((d, i) => {
+          const x = 0.7 + i * colW + (colW - barW) / 2;
+          const barH = Math.max((d.value / maxValue) * trackH, 0.12);
+          pSlide.addShape("roundRect", {
+            x, y: baseline - barH, w: barW, h: barH, rectRadius: 0.05,
+            fill: { color: p.accent, transparency: 100 - seriesOpacity(i, n) },
+            line: { type: "none" },
+          });
+          pSlide.addText(`${d.value}%`, {
+            x: 0.7 + i * colW, y: baseline - barH - 0.42, w: colW, h: 0.35, fontSize: 15, bold: true,
+            color: p.text, fontFace: p.headingFont, align: "center",
+          });
+          pSlide.addText(d.label, {
+            x: 0.7 + i * colW, y: baseline + 0.1, w: colW, h: 0.4, fontSize: 12,
+            color: p.muted, fontFace: p.bodyFont, align: "center",
+          });
+        });
+      } else {
+        const n = slide.data.length;
+        const cx = 2.4, cy = 3.15;
+        const strokeW = 0.22, gap = 0.055;
+        const r0 = 1.15;
+        slide.data.forEach((d, i) => {
+          const r = r0 - i * (strokeW + gap);
+          if (r <= strokeW / 2) return;
+          pSlide.addShape("blockArc", {
+            x: cx - r, y: cy - r, w: r * 2, h: r * 2,
+            angleRange: [0, 359.9], arcThicknessRatio: strokeW / r,
+            fill: { color: p.muted, transparency: 85 }, line: { type: "none" },
+          });
+          pSlide.addShape("blockArc", {
+            x: cx - r, y: cy - r, w: r * 2, h: r * 2,
+            angleRange: [0, Math.max((d.value / 100) * 359.9, 2)], arcThicknessRatio: strokeW / r,
+            fill: { color: p.accent, transparency: 100 - seriesOpacity(i, n) }, line: { type: "none" },
+          });
+        });
+        const legendY = cy - r0;
+        slide.data.forEach((d, i) => {
+          const y = legendY + i * 0.55;
+          pSlide.addShape("ellipse", {
+            x: 4.1, y: y + 0.09, w: 0.16, h: 0.16,
+            fill: { color: p.accent, transparency: 100 - seriesOpacity(i, n) }, line: { type: "none" },
+          });
+          pSlide.addText(d.label, {
+            x: 4.4, y, w: 2.6, h: 0.35, fontSize: 14,
+            color: p.text, fontFace: p.bodyFont, valign: "middle",
+          });
+          pSlide.addText(`${d.value}%`, {
+            x: 7.0, y, w: 1.3, h: 0.35, fontSize: 15, bold: true,
+            color: p.accent, fontFace: p.headingFont, align: "right", valign: "middle",
+          });
+        });
+      }
+      return;
+    }
+    case "comparison": {
+      pSlide.addText(slide.title, {
+        x: 0.7, y: 0.45, w: 8.6, h: 0.7, fontSize: 32, bold: true,
+        color: p.text, fontFace: p.headingFont,
+      });
+      const n = slide.tiers.length;
+      const gap = 0.25;
+      const cardW = (8.6 - gap * (n - 1)) / n;
+      const cardY = 1.5;
+      const headerH = 0.5;
+      const cardH = 3.6;
+      slide.tiers.forEach((tier, i) => {
+        const x = 0.7 + i * (cardW + gap);
+        pSlide.addShape("rect", {
+          x, y: cardY, w: cardW, h: cardH,
+          fill: { color: p.background }, line: { color: p.muted, width: 0.75, transparency: 70 },
+        });
+        pSlide.addShape("rect", {
+          x, y: cardY, w: cardW, h: headerH,
+          fill: { color: p.accent, transparency: 100 - seriesOpacity(i, n) }, line: { type: "none" },
+        });
+        pSlide.addText(tier.name.toUpperCase(), {
+          x, y: cardY, w: cardW, h: headerH, fontSize: 12, bold: true, charSpacing: 1,
+          color: p.text, fontFace: p.headingFont, align: "center", valign: "middle",
+        });
+        pSlide.addText(tier.price, {
+          x: x + 0.2, y: cardY + headerH + 0.15, w: cardW - 0.4, h: 0.5, fontSize: 20, bold: true,
+          color: p.text, fontFace: p.headingFont, valign: "top",
+        });
+        pSlide.addShape("line", {
+          x: x + 0.2, y: cardY + headerH + 0.75, w: cardW - 0.4, h: 0,
+          line: { color: p.muted, width: 0.75, transparency: 70 },
+        });
+        pSlide.addText(
+          tier.features.map((f) => ({
+            text: f,
+            options: { bullet: { code: "2022", indent: 10 }, breakLine: true },
+          })),
+          {
+            x: x + 0.2, y: cardY + headerH + 0.9, w: cardW - 0.4, h: cardH - headerH - 1.0, fontSize: 11,
+            color: p.muted, fontFace: p.bodyFont, valign: "top", lineSpacingMultiple: 1.3,
+          }
+        );
+      });
+      return;
+    }
+    case "quadrant": {
+      pSlide.addText(slide.title, {
+        x: 0.7, y: 0.45, w: 8.6, h: 0.7, fontSize: 32, bold: true,
+        color: p.text, fontFace: p.headingFont,
+      });
+      const left = 0.7, top = 1.5, w = 8.6, h = 3.7;
+      const midX = left + w / 2;
+      const midY = top + h / 2;
+      pSlide.addShape("line", {
+        x: midX, y: top, w: 0, h, line: { color: p.muted, width: 1, transparency: 60 },
+      });
+      pSlide.addShape("line", {
+        x: left, y: midY, w, h: 0, line: { color: p.muted, width: 1, transparency: 60 },
+      });
+      const cellW = w / 2 - 0.3;
+      const cellH = h / 2 - 0.2;
+      const quadrants = [
+        { q: slide.topLeft, x: left, y: top },
+        { q: slide.topRight, x: midX + 0.3, y: top },
+        { q: slide.bottomLeft, x: left, y: midY + 0.2 },
+        { q: slide.bottomRight, x: midX + 0.3, y: midY + 0.2 },
+      ];
+      quadrants.forEach(({ q, x, y }) => {
+        pSlide.addText(q.label, {
+          x, y, w: cellW, h: 0.35, fontSize: 16, bold: true,
+          color: p.accent, fontFace: p.headingFont,
+        });
+        pSlide.addText(
+          q.items.map((it) => ({
+            text: stripListMarker(it),
+            options: { bullet: { code: "2022", indent: 10 }, breakLine: true },
+          })),
+          {
+            x, y: y + 0.4, w: cellW, h: cellH - 0.4, fontSize: 12,
+            color: p.text, fontFace: p.bodyFont, valign: "top", lineSpacingMultiple: 1.25,
+          }
+        );
+      });
+      return;
+    }
+    case "process": {
+      pSlide.addText(slide.title, {
+        x: 0.7, y: 0.45, w: 8.6, h: 0.7, fontSize: 32, bold: true,
+        color: p.text, fontFace: p.headingFont,
+      });
+      const n = slide.steps.length;
+      const overlap = 0.35;
+      const stepW = (8.6 + overlap * (n - 1)) / n;
+      let x = 0.7;
+      slide.steps.forEach((step, i) => {
+        pSlide.addShape("chevron", {
+          x, y: 2.3, w: stepW, h: 1.0,
+          fill: { color: p.accent, transparency: 100 - seriesOpacity(i, n) }, line: { type: "none" },
+        });
+        pSlide.addText(step, {
+          x, y: 2.3, w: stepW, h: 1.0, fontSize: 13, bold: true,
+          color: p.background, fontFace: p.headingFont, align: "center", valign: "middle",
+        });
+        x += stepW - overlap;
+      });
+      return;
+    }
+    case "team": {
+      pSlide.addText(slide.title, {
+        x: 0.7, y: 0.45, w: 8.6, h: 0.7, fontSize: 32, bold: true,
+        color: p.text, fontFace: p.headingFont,
+      });
+      const n = slide.members.length;
+      const cols = n === 2 ? 2 : 3;
+      const rows = Math.ceil(n / cols);
+      const cellW = 8.6 / cols;
+      const cellH = 3.6 / rows;
+      slide.members.forEach((m, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = 0.7 + col * cellW;
+        const y = 1.6 + row * cellH;
+        pSlide.addShape("ellipse", {
+          x, y: y + 0.1, w: 0.55, h: 0.55,
+          fill: { color: p.accent, transparency: 100 - seriesOpacity(i, n) }, line: { type: "none" },
+        });
+        pSlide.addText(initials(m.name), {
+          x, y: y + 0.1, w: 0.55, h: 0.55, fontSize: 14, bold: true,
+          color: p.background, fontFace: p.headingFont, align: "center", valign: "middle",
+        });
+        pSlide.addText(m.name, {
+          x: x + 0.65, y: y + 0.08, w: cellW - 0.75, h: 0.32, fontSize: 14, bold: true,
+          color: p.text, fontFace: p.headingFont, valign: "top",
+        });
+        pSlide.addText(m.role, {
+          x: x + 0.65, y: y + 0.42, w: cellW - 0.75, h: 0.3, fontSize: 11,
+          color: p.muted, fontFace: p.bodyFont, valign: "top",
+        });
       });
       return;
     }
   }
+}
+
+/**
+ * Mirrors layouts.tsx's seriesTint: every chart series is an opacity step
+ * of the single theme accent (0-100), not an invented multi-hue palette.
+ */
+function seriesOpacity(i: number, total: number): number {
+  return total <= 1 ? 90 : 55 + (i / (total - 1)) * 40;
+}
+
+/** Mirrors layouts.tsx's initials(): colored-initials avatar, no photo. */
+function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 }

@@ -2,14 +2,26 @@ import type { Deck } from "@supergamma/schema";
 import type { CSSProperties } from "react";
 import { SlideRenderer } from "./SlideRenderer.js";
 
+const SERIF_FONTS = new Set(["Playfair Display", "Georgia"]);
+
+/**
+ * A bare font name with no fallback silently degrades to the browser's
+ * default (often serif) the moment the webfont fails to load — this is
+ * what made every "sans-serif" theme render as Times New Roman before.
+ * Always pin a real generic fallback alongside the requested family.
+ */
+function withFallback(font: string): string {
+  return `"${font}", ${SERIF_FONTS.has(font) ? "serif" : "sans-serif"}`;
+}
+
 function themeStyle(theme: Deck["theme"]): CSSProperties {
   return {
     ["--sg-background" as string]: theme.colors.background,
     ["--sg-text" as string]: theme.colors.text,
     ["--sg-accent" as string]: theme.colors.accent,
     ["--sg-muted" as string]: theme.colors.muted,
-    ["--sg-font-heading" as string]: theme.fonts.heading,
-    ["--sg-font-body" as string]: theme.fonts.body,
+    ["--sg-font-heading" as string]: withFallback(theme.fonts.heading),
+    ["--sg-font-body" as string]: withFallback(theme.fonts.body),
   };
 }
 

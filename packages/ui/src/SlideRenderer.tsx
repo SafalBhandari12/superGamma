@@ -3,8 +3,13 @@ import {
   AgendaLayout,
   BigStatLayout,
   BulletsLayout,
+  ChartLayout,
+  ComparisonLayout,
+  ProcessLayout,
+  QuadrantLayout,
   QuoteLayout,
   TableLayout,
+  TeamLayout,
   TimelineLayout,
   TitleLayout,
   TwoColumnLayout,
@@ -33,6 +38,16 @@ export function SlideRenderer({ slide }: { slide: Slide }) {
       return <TimelineLayout slide={slide} />;
     case "table":
       return <TableLayout slide={slide} />;
+    case "chart":
+      return <ChartLayout slide={slide} />;
+    case "comparison":
+      return <ComparisonLayout slide={slide} />;
+    case "quadrant":
+      return <QuadrantLayout slide={slide} />;
+    case "process":
+      return <ProcessLayout slide={slide} />;
+    case "team":
+      return <TeamLayout slide={slide} />;
     default: {
       const _exhaustive: never = slide;
       return _exhaustive;

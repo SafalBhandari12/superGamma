@@ -70,6 +70,52 @@ export const TableSlideSchema = z.object({
   rows: z.array(z.array(tableCell).min(2).max(4)).min(2).max(6),
 });
 
+const chartDataPoint = z.object({ label: shortText, value: z.number().min(0).max(100) });
+
+export const ChartSlideSchema = z.object({
+  layout: z.literal("chart"),
+  title: shortText,
+  chartType: z.enum(["bar", "donut"]),
+  data: z.array(chartDataPoint).min(2).max(6),
+});
+
+const comparisonTier = z.object({
+  name: shortText,
+  price: z.string().min(1).max(20),
+  features: z.array(shortText).min(2).max(6),
+});
+
+export const ComparisonSlideSchema = z.object({
+  layout: z.literal("comparison"),
+  title: shortText,
+  tiers: z.array(comparisonTier).min(2).max(4),
+});
+
+const quadrantCell = z.object({ label: shortText, items: z.array(shortText).min(1).max(4) });
+
+export const QuadrantSlideSchema = z.object({
+  layout: z.literal("quadrant"),
+  title: shortText,
+  topLeft: quadrantCell,
+  topRight: quadrantCell,
+  bottomLeft: quadrantCell,
+  bottomRight: quadrantCell,
+});
+
+export const ProcessSlideSchema = z.object({
+  layout: z.literal("process"),
+  title: shortText,
+  steps: z.array(shortText).min(3).max(6),
+});
+
+const teamMember = z.object({ name: shortText, role: z.string().min(1).max(28) });
+
+export const TeamSlideSchema = z.object({
+  layout: z.literal("team"),
+  title: shortText,
+  members: z.array(teamMember).min(2).max(6),
+});
+
 export const SlideSchema = z.discriminatedUnion("layout", [
   TitleSlideSchema,
   BulletsSlideSchema,
@@ -79,6 +125,11 @@ export const SlideSchema = z.discriminatedUnion("layout", [
   AgendaSlideSchema,
   TimelineSlideSchema,
   TableSlideSchema,
+  ChartSlideSchema,
+  ComparisonSlideSchema,
+  QuadrantSlideSchema,
+  ProcessSlideSchema,
+  TeamSlideSchema,
 ]);
 
 export type Slide = z.infer<typeof SlideSchema>;
@@ -93,6 +144,11 @@ export const LAYOUT_NAMES = [
   "agenda",
   "timeline",
   "table",
+  "chart",
+  "comparison",
+  "quadrant",
+  "process",
+  "team",
 ] as const satisfies readonly SlideLayout[];
 
 export const SlideLayoutEnum = z.enum(LAYOUT_NAMES);
@@ -115,4 +171,9 @@ export const SLIDE_LAYOUT_SCHEMAS = {
   agenda: AgendaSlideSchema,
   timeline: TimelineSlideSchema,
   table: TableSlideSchema,
+  chart: ChartSlideSchema,
+  comparison: ComparisonSlideSchema,
+  quadrant: QuadrantSlideSchema,
+  process: ProcessSlideSchema,
+  team: TeamSlideSchema,
 } as const satisfies Record<SlideLayout, z.ZodTypeAny>;

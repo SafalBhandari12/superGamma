@@ -19,10 +19,15 @@ Layouts you can choose from, and when to use each:
 - big-stat: one number the audience should remember, with a short label.
 - quote: a single quotation with an optional attribution.
 - agenda: 3-6 topics/sections with a short title and one-line description each — a table-of-contents or overview slide.
-- timeline: 3-5 steps or phases that happen in sequence — a process, roadmap, or journey.
+- timeline: 3-5 steps or phases that happen in sequence, each with a label AND a one-line description — a detailed process, roadmap, or journey.
+- process: 3-6 steps in sequence with ONLY a short label each (no room for a description) — a compact flow shown as arrows, e.g. a pipeline or lifecycle stage names.
 - table: a comparison or data table, 2-4 columns and 2-6 rows.
+- chart: 2-6 labeled data points, each a percentage (0-100) — use "bar" for comparing values across categories, "donut" for values that read as a share/proportion (e.g. multiple completion rates or scores).
+- comparison: 2-4 pricing/plan/package tiers, each with a name, a price (or short value string), and 2-6 features — use for pricing plans, package tiers, or ranked option sets.
+- quadrant: a 2x2 strategic framework (e.g. SWOT) — four labeled cells, each with 1-4 short items.
+- team: 2-6 people, each with a name and a SHORT role title (e.g. "CEO", "Engineering Lead" — not a sentence) — "who's involved" or "meet the team" slides.
 
-Prefer variety: don't lean on "bullets" for everything. Use "table" for anything comparative (options, tiers, before/after), "timeline" for anything sequential (steps, phases, roadmap), and "agenda" for a topic overview.
+Prefer variety: don't lean on "bullets" for everything. Use "table" for anything comparative (options, tiers, before/after), "timeline" for a sequence that needs explanation per step, "process" for a short-label sequence, "agenda" for a topic overview, "chart" whenever the content is numeric/quantitative rather than prose, "comparison" for pricing/tiers, "quadrant" for a strategic 2x2 framework, and "team" whenever people and their roles are the actual content.
 `.trim();
 
 /**
