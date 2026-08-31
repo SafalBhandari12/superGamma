@@ -131,14 +131,12 @@ Rules:
 - 6-8 slides. Open with "hero". Close with "closing".
 - Vary the archetypes: never the same one twice in a row, and never more than two of any archetype
   in the deck. A deck that is all statGrid and featureGrid reads as a template.
-- LEAN ON CHARTS. Include at least TWO "chart" slides in every deck, and three when the topic has
-  any numbers in it at all. A chart reads as evidence and is the single biggest thing that makes a
-  deck look professional rather than like a list of assertions; prose where a chart belongs is the
-  most common way a deck looks amateur. Only skip a chart when the topic genuinely has nothing
-  measurable — and almost every topic has something: counts, shares, costs, durations, growth,
-  before/after, stage drop-off.
-- Prefer "diagram" or "process" over another text slide too — anything that shows structure beats
-  another set of bullet points.
+- Use a "chart" slide where the content is genuinely quantitative — a comparison, a trend, a
+  breakdown. Typically one such slide, two if the topic is really data-heavy. A chart reads as
+  evidence, but only when it plots something real; forcing one onto content that has no honest
+  numbers behind it is worse than the text slide it replaced.
+- "diagram" and "process" are the same trade for non-numeric structure: reach for one when the
+  content actually has sets that overlap or steps in sequence, not by default.
 - The brief is a pointer for the next step, not the slide's copy. Under 180 characters.`,
     `Topic: ${prompt}`
   );
