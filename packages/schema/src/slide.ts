@@ -50,7 +50,11 @@ const statValue = z
   .string()
   .min(1)
   .max(12)
-  .describe('A short display number such as "40%", "$12M", "1.5B" or "48". Never a phrase.');
+  .refine((v) => /\d/.test(v), {
+    message:
+      'A stat value must be an actual number, e.g. "40%", "$12M", "1.5B" or "48". A glyph such as "↑" or a word carries no value — if there is no real figure, omit the stat.',
+  })
+  .describe('A short display number such as "40%", "$12M", "1.5B" or "48". Never a phrase or a symbol.');
 
 const statLabel = micro.describe(
   'What the number measures, 1-3 words, e.g. "Parameters" or "Context window".'
@@ -77,18 +81,38 @@ const categoryPoint = z.object({ label: micro, value: z.number() });
  * magnitude → column/bar, trend → line/area, part-to-whole → donut/waffle,
  * polarity → diverging, target → bullet, change → dumbbell, stages → funnel.
  */
+/**
+ * A unit is a symbol or suffix, not a word — it is appended straight onto every
+ * value label, so "capab." produces "1capab." on every bar.
+ */
+const chartUnit = z
+  .string()
+  .max(3)
+  .describe('Optional short symbol appended to values, e.g. "%", "M", "x". Never a word.');
+
+/**
+ * Values must be the quantity being compared. The model's failure mode is to
+ * put the real figures in the LABELS ("117M", "345M", "774M", "1.5B") and then
+ * use 1, 2, 3, 4 as the values — bars that encode rank order and mean nothing.
+ * A run of consecutive integers starting at 1 is that tell, so reject it.
+ */
+export function valuesAreNotRanks(points: { value: number }[]) {
+  if (points.length < 3) return true;
+  return !points.every((p, i) => p.value === i + 1);
+}
+
 export const ColumnChartSchema = z.object({
   kind: z.literal("column"),
   points: z.array(categoryPoint).min(2).max(7),
   /** index of the one bar that carries the story; the rest render gray */
   emphasisIndex: z.number().int().min(0).max(6).optional(),
-  unit: z.string().max(6).optional(),
+  unit: chartUnit.optional(),
 });
 
 export const BarChartSchema = z.object({
   kind: z.literal("bar"),
   points: z.array(categoryPoint).min(2).max(6),
-  unit: z.string().max(6).optional(),
+  unit: chartUnit.optional(),
 });
 
 /**
@@ -393,6 +417,16 @@ export const ChartSlideGenerationSchema = ChartSlideSchema.refine(
     message:
       "All series on a line chart share one axis, so they must be the same unit and a similar magnitude. These are not — plot only the measure this slide is about, or index every series to a common base (=100 at the first point).",
     path: ["chart", "series"],
+  }
+).refine(
+  (slide) =>
+    slide.chart.kind !== "column" && slide.chart.kind !== "bar"
+      ? true
+      : valuesAreNotRanks(slide.chart.points),
+  {
+    message:
+      "These values are 1, 2, 3... — a rank order, not a measurement, so the bars encode nothing. Put the real quantity in `value` (117 not 1) and the category name in `label`.",
+    path: ["chart", "points"],
   }
 );
 

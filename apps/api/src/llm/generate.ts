@@ -57,6 +57,16 @@ Never emit a chart for a single number — that is a stat tile, and the hero/sta
 already hold it. Never invent precise-looking figures you cannot support; prefer round, clearly
 illustrative numbers.
 
+The "value" on every point is the QUANTITY BEING COMPARED, and "label" is the category's name.
+Never use 1, 2, 3, 4 as values to mean "first, second, third" — bars sized by rank order encode
+nothing. If the figures are 117M / 345M / 774M / 1.5B, those are the VALUES (117, 345, 774, 1500)
+and the labels are the names ("Small", "Medium", "Large", "XL"). The "unit" field is a symbol like
+"%", "M" or "x" — never a word, because it is appended directly onto each value.
+
+Every stat value must contain a real figure. An arrow, a dash or a word is not a value — if you
+have no number for a tile, leave the optional field out entirely rather than filling it with a
+placeholder.
+
 Every series on one chart shares ONE axis. Never mix units or magnitudes on it — revenue in
 millions beside subscriber counts in thousands makes the smaller series look flat and invents a
 correlation. Plot the one measure the slide is about, or index every series to a common base.
@@ -121,7 +131,14 @@ Rules:
 - 6-8 slides. Open with "hero". Close with "closing".
 - Vary the archetypes: never the same one twice in a row, and never more than two of any archetype
   in the deck. A deck that is all statGrid and featureGrid reads as a template.
-- Include at least one "chart" whenever the topic has anything quantitative in it.
+- LEAN ON CHARTS. Include at least TWO "chart" slides in every deck, and three when the topic has
+  any numbers in it at all. A chart reads as evidence and is the single biggest thing that makes a
+  deck look professional rather than like a list of assertions; prose where a chart belongs is the
+  most common way a deck looks amateur. Only skip a chart when the topic genuinely has nothing
+  measurable — and almost every topic has something: counts, shares, costs, durations, growth,
+  before/after, stage drop-off.
+- Prefer "diagram" or "process" over another text slide too — anything that shows structure beats
+  another set of bullet points.
 - The brief is a pointer for the next step, not the slide's copy. Under 180 characters.`,
     `Topic: ${prompt}`
   );

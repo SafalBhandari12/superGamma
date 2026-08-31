@@ -99,13 +99,17 @@ const t = (
  */
 export function tilesFor(slide: Slide): GridTile[] {
   switch (slide.archetype) {
-    case "hero":
+    case "hero": {
+      // Only reserve the footer strip if there is footer text. Reserving a tile
+      // for content the model omitted is what leaves visible holes in a slide.
+      const hasFooter = Boolean(slide.footerLeft || slide.footerRight);
       return [
-        t("anchor", 1, 1, 4, 3, "mesh", true),
+        t("anchor", 1, 1, 4, hasFooter ? 3 : 4, "mesh", true),
         t("stat0", 5, 1, 2, 2, "tone1"),
         t("stat1", 5, 3, 2, 2, "tone4"),
-        t("footer", 1, 4, 4, 1, "s2"),
+        ...(hasFooter ? [t("footer", 1, 4, 4, 1, "s2")] : []),
       ];
+    }
 
     case "statGrid": {
       const n = slide.stats.length;
@@ -158,33 +162,39 @@ export function tilesFor(slide: Slide): GridTile[] {
 
     case "chart": {
       const sides = slide.sideStats?.length ?? 0;
+      const hasTakeaway = Boolean(slide.takeaway);
+      const plotRows = hasTakeaway ? 3 : 4;
       if (sides === 0) {
         return [
-          t("chart", 1, 1, 6, 3, "s2", true),
-          t("takeaway", 1, 4, 6, 1, "s3"),
+          t("chart", 1, 1, 6, plotRows, "s2", true),
+          ...(hasTakeaway ? [t("takeaway", 1, 4, 6, 1, "s3")] : []),
         ];
       }
       if (sides === 1) {
         return [
-          t("chart", 1, 1, 4, 3, "s2", true),
-          t("side0", 5, 1, 2, 3, "tone4"),
-          t("takeaway", 1, 4, 6, 1, "s3"),
+          t("chart", 1, 1, 4, plotRows, "s2", true),
+          t("side0", 5, 1, 2, plotRows, "tone4"),
+          ...(hasTakeaway ? [t("takeaway", 1, 4, 6, 1, "s3")] : []),
         ];
       }
       return [
-        t("chart", 1, 1, 4, 3, "s2", true),
+        t("chart", 1, 1, 4, plotRows, "s2", true),
         t("side0", 5, 1, 2, 2, "tone4"),
         t("side1", 5, 3, 2, 2, "s3"),
-        t("takeaway", 1, 4, 4, 1, "s2"),
+        ...(hasTakeaway ? [t("takeaway", 1, 4, 4, 1, "s2")] : []),
       ];
     }
 
-    case "diagram":
+    case "diagram": {
+      // Without a proof stat the statement fills the right column rather than
+      // floating in the top half with an empty tile-sized gap beneath it.
+      const hasProof = Boolean(slide.proof);
       return [
         t("diagram", 1, 1, 3, 4, "s2", true),
-        t("statement", 4, 1, 3, 2, "mesh"),
-        t("proof", 4, 3, 3, 2, "tone1"),
+        t("statement", 4, 1, 3, hasProof ? 2 : 4, "mesh"),
+        ...(hasProof ? [t("proof", 4, 3, 3, 2, "tone1")] : []),
       ];
+    }
 
     case "process": {
       const notes = slide.footnotes?.length ?? 0;
