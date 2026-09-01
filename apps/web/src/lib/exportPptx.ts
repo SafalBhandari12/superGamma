@@ -121,23 +121,50 @@ type Ctx = {
 };
 
 /**
+ * Rough glyph-width heuristic for a proportional sans (Geist) — good enough
+ * to estimate wrap count, not real shaping. Bold and all-caps both run
+ * noticeably wider than lowercase mixed-case text.
+ */
+function estimateWrappedHeight(text: string, sizePt: number, widthIn: number, bold?: boolean, caps?: boolean): number {
+  if (!text) return 0;
+  const avgCharWidthEm = caps ? 0.62 : bold ? 0.58 : 0.52;
+  const charsPerLine = Math.max(1, Math.floor(widthIn / ((sizePt * avgCharWidthEm) / 72)));
+  const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+  const lineHeightIn = (sizePt * 1.25) / 72;
+  return lines * lineHeightIn;
+}
+
+/**
  * Stack text blocks down a tile from a starting offset, returning the next free
  * y. Keeping placement in one helper is what stops tiles overflowing: every
- * block declares its own height rather than relying on autofit.
+ * block declares a height, but that height is floored by an estimate of how
+ * many lines the text will actually wrap to — a caller-supplied `height`
+ * tuned for one line silently overlapped the next block whenever the real
+ * string wrapped to two.
  */
+type TextOpts = { size: number; bold?: boolean; color?: string; height?: number; caps?: boolean };
+
 function stack(ctx: Ctx) {
   let y = ctx.rect.y + PAD;
   const x = ctx.rect.x + PAD;
   const w = ctx.rect.w - PAD * 2;
   const bottom = ctx.rect.y + ctx.rect.h - PAD;
 
+  const blockHeight = (text: string, opts: TextOpts) => {
+    if (!text) return 0;
+    const declared = opts.height ?? opts.size / 72 + 0.1;
+    const estimated = estimateWrappedHeight(text, opts.size, w, opts.bold, opts.caps);
+    return Math.max(declared, estimated);
+  };
+
   return {
-    add(
-      text: string,
-      opts: { size: number; bold?: boolean; color?: string; height?: number; caps?: boolean }
-    ) {
+    /** Height `add(text, opts)` would actually reserve — use to size a `toBottom` reserve before drawing. */
+    measure(text: string, opts: TextOpts) {
+      return text ? blockHeight(text, opts) + 0.04 : 0;
+    },
+    add(text: string, opts: TextOpts) {
       if (!text) return;
-      const h = opts.height ?? opts.size / 72 + 0.1;
+      const h = blockHeight(text, opts);
       if (y + h > bottom + 0.05) return; // never draw past the tile
       ctx.slide.addText(opts.caps ? text.toUpperCase() : text, {
         x,
@@ -196,7 +223,14 @@ function drawChart(slide: any, chart: ChartSpec, r: { x: number; y: number; w: n
     case "column":
     case "bar": {
       const emphasis = chart.kind === "column" ? chart.emphasisIndex : undefined;
-      slide.addChart(chart.kind === "bar" ? "bar" : "bar", {
+      // addChart's signature is (type, data, options) — data before options.
+      slide.addChart(chart.kind === "bar" ? "bar" : "bar", [
+        {
+          name: "Value",
+          labels: chart.points.map((pt) => pt.label),
+          values: chart.points.map((pt) => pt.value),
+        },
+      ], {
         ...common,
         barDir: chart.kind === "bar" ? "bar" : "col",
         chartColors:
@@ -207,13 +241,7 @@ function drawChart(slide: any, chart: ChartSpec, r: { x: number; y: number; w: n
         dataLabelColor: ink,
         dataLabelFontSize: 9,
         barGapWidthPct: 120,
-      }, [
-        {
-          name: "Value",
-          labels: chart.points.map((pt) => pt.label),
-          values: chart.points.map((pt) => pt.value),
-        },
-      ]);
+      });
       return;
     }
     case "line":
@@ -222,7 +250,7 @@ function drawChart(slide: any, chart: ChartSpec, r: { x: number; y: number; w: n
         chart.kind === "line"
           ? chart.series.map((s) => ({ name: s.name, labels: chart.xLabels, values: s.values }))
           : [{ name: "Value", labels: chart.xLabels, values: chart.values }];
-      slide.addChart(chart.kind === "area" ? "area" : "line", {
+      slide.addChart(chart.kind === "area" ? "area" : "line", series, {
         ...common,
         showLegend: chart.kind === "line" && chart.series.length > 1,
         legendPos: "b",
@@ -231,11 +259,17 @@ function drawChart(slide: any, chart: ChartSpec, r: { x: number; y: number; w: n
         lineSize: 2,
         lineSmooth: false,
         chartColors: chart.kind === "area" ? [bar] : p.series,
-      }, series);
+      });
       return;
     }
     case "donut": {
-      slide.addChart("doughnut", {
+      slide.addChart("doughnut", [
+        {
+          name: "Share",
+          labels: chart.slices.map((s) => s.label),
+          values: chart.slices.map((s) => s.value),
+        },
+      ], {
         ...box,
         holeSize: 55,
         showLegend: true,
@@ -244,13 +278,7 @@ function drawChart(slide: any, chart: ChartSpec, r: { x: number; y: number; w: n
         legendFontSize: 9,
         chartColors: p.series,
         dataBorder: { pt: 1, color: onTone ? hex("#ffffff") : p.s1 },
-      }, [
-        {
-          name: "Share",
-          labels: chart.slices.map((s) => s.label),
-          values: chart.slices.map((s) => s.value),
-        },
-      ]);
+      });
       return;
     }
     case "waffle": {
@@ -450,9 +478,11 @@ function fill(pSlide: any, slide: Slide, p: Palette) {
       if (a) {
         const s = stack(a);
         if (slide.eyebrow) s.add(slide.eyebrow, { size: TYPE.label, color: a.dim, caps: true, height: 0.22 });
-        s.toBottom(1.5);
-        s.add(slide.title, { size: TYPE.title, bold: true, height: 0.95 });
-        s.add(slide.subtitle, { size: TYPE.subtitle, color: a.dim, height: 0.4 });
+        const titleOpts = { size: TYPE.title, bold: true, height: 0.95 };
+        const subtitleOpts = { size: TYPE.subtitle, color: a.dim, height: 0.4 };
+        s.toBottom(s.measure(slide.title, titleOpts) + s.measure(slide.subtitle, subtitleOpts));
+        s.add(slide.title, titleOpts);
+        s.add(slide.subtitle, subtitleOpts);
       }
       slide.stats.forEach((stat, i) => {
         const c = ctxOf(`stat${i}`);
@@ -479,9 +509,11 @@ function fill(pSlide: any, slide: Slide, p: Palette) {
       if (lead) {
         const s = stack(lead);
         s.add(slide.leadLabel, { size: TYPE.label, color: lead.dim, caps: true, height: 0.22 });
-        s.toBottom(1.35);
-        s.add(slide.leadValue, { size: TYPE.statXl, bold: true, height: 0.9 });
-        s.add(slide.leadNote, { size: TYPE.body, color: lead.dim, height: 0.32 });
+        const leadValueOpts = { size: TYPE.statXl, bold: true, height: 0.9 };
+        const leadNoteOpts = { size: TYPE.body, color: lead.dim, height: 0.32 };
+        s.toBottom(s.measure(slide.leadValue, leadValueOpts) + s.measure(slide.leadNote, leadNoteOpts));
+        s.add(slide.leadValue, leadValueOpts);
+        s.add(slide.leadNote, leadNoteOpts);
       }
       slide.stats.forEach((stat, i) => {
         const c = ctxOf(`stat${i}`);
@@ -786,9 +818,11 @@ function fill(pSlide: any, slide: Slide, p: Palette) {
       const a = ctxOf("anchor");
       if (a) {
         const s = stack(a);
-        s.toBottom(1.5);
-        s.add(slide.title, { size: TYPE.title, bold: true, height: 0.9 });
-        s.add(slide.subtitle, { size: TYPE.subtitle, color: a.dim, height: 0.44 });
+        const titleOpts = { size: TYPE.title, bold: true, height: 0.9 };
+        const subtitleOpts = { size: TYPE.subtitle, color: a.dim, height: 0.44 };
+        s.toBottom(s.measure(slide.title, titleOpts) + s.measure(slide.subtitle, subtitleOpts));
+        s.add(slide.title, titleOpts);
+        s.add(slide.subtitle, subtitleOpts);
       }
       (slide.stats ?? []).forEach((stat, i) => {
         const c = ctxOf(`stat${i}`);

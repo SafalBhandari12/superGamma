@@ -1,3 +1,156 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    /* Mirrors tailwind.config.ts so raw CSS (scrollbars, selection) can reach
+       the same tokens without going through a class. */
+    --canvas: #ede8de;
+    --surface: #ffffff;
+    --surface-2: #faf6ee;
+    --surface-3: #f3ede1;
+    --line: #dfd8ca;
+    --ink: #1f1b16;
+    --muted: #6e6558;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  ::selection {
+    background: #1f1b16;
+    color: #fff8f0;
+  }
+
+  /* Focus is a solid offset ring, not a glow — same flat language as the tiles. */
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* The one tile primitive both the landing page and the dashboard build on.
+     Flat fill + 1px rule + 14px radius, matching .bento-tile in the renderer. */
+  .tile {
+    @apply relative overflow-hidden rounded-tile border border-line bg-surface;
+  }
+
+  .tile-quiet {
+    @apply relative overflow-hidden rounded-tile border border-line bg-surface-2;
+  }
+
+  /* Display type. Fraunces is a variable serif whose optical-size axis thins
+     the serifs and tightens spacing as it grows, so a headline earns its
+     dominance from size and contrast rather than from another 200 of weight —
+     which is why nothing here goes above semibold. WONK/SOFT are pinned off:
+     their default swash-y `g` and rounded terminals are the family's playful
+     mode, not its editorial one. */
+  .serif {
+    @apply font-display;
+    font-optical-sizing: auto;
+    font-variation-settings:
+      "SOFT" 0,
+      "WONK" 0;
+    font-weight: 600;
+  }
+
+  .display {
+    @apply serif text-display;
+  }
+
+  .title-serif {
+    @apply serif text-title;
+  }
+
+  /* Large figures — stat tiles, the filmstrip counter. Set in the display
+     serif so a number reads as a number, not as another heading. */
+  .figure {
+    @apply serif nums;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  /* Uppercase mono eyebrow — the role .bento-label plays inside a slide. */
+  .eyebrow {
+    @apply font-mono text-label font-medium uppercase text-muted;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-small font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .btn-primary {
+    @apply btn bg-ink text-on-tone hover:bg-ink-2;
+  }
+
+  .btn-secondary {
+    @apply btn border border-line-strong bg-surface text-ink hover:bg-surface-2;
+  }
+
+  .btn-ghost {
+    @apply btn text-muted hover:bg-surface-3 hover:text-ink;
+  }
+
+  .field {
+    @apply w-full rounded-[10px] border border-line-strong bg-surface px-3.5 py-2.5 text-small text-ink placeholder:text-faint focus:border-ink focus:outline-none;
+  }
+
+  /* Fine 1px grid, drawn with hairlines rather than a gradient. Sits behind
+     the hero so the bento tiles read as objects on a plane. */
+  .rule-grid {
+    background-image:
+      linear-gradient(to right, rgba(31, 27, 22, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(31, 27, 22, 0.05) 1px, transparent 1px);
+    background-size: 68px 68px;
+  }
+}
+
+@layer utilities {
+  /* Figures line up in columns — stat tiles, filmstrip counters, the type scale. */
+  .nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #c6bca9 transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #c6bca9;
+    border-radius: 999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
