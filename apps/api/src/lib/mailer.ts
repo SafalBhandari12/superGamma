@@ -10,7 +10,8 @@ interface SendEmailInput {
 
 /** Auth flows (verification, password reset) send through this — Maileroo is the only email provider wired up. */
 export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<void> {
-  const res = await fetch(MAILEROO_ENDPOINT, {
+  // Explicit shape: Vercel's build-time type check resolves a different global `Response` than local tsc does.
+  const res = (await fetch(MAILEROO_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -22,7 +23,7 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
       subject,
       html,
     }),
-  });
+  })) as unknown as { ok: boolean; status: number; text(): Promise<string> };
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");

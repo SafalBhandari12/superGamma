@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import rateLimit from "express-rate-limit";
+import { rateLimit } from "express-rate-limit";
 
 /** These run after requireAuth, so key by account rather than IP (behind Vercel's proxies every request can share an IP). */
 const byUser = (req: Request) => req.user.id;
