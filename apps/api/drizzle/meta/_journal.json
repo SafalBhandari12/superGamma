@@ -15,6 +15,13 @@
       "when": 1788194086304,
       "tag": "0001_slippery_gamma_corps",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791380065651,
+      "tag": "0002_decks_and_quota",
+      "breakpoints": true
     }
   ]
 }

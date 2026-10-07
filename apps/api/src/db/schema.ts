@@ -1,4 +1,5 @@
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import type { Deck } from "@supergamma/schema";
 
 /**
  * Table/column shape mirrors what `better-auth`'s Drizzle adapter expects
@@ -56,3 +57,35 @@ export const verification = pgTable("verification", {
   createdAt: timestamp("created_at"),
   updatedAt: timestamp("updated_at"),
 });
+
+/** Generated decks, owned by the user who made them. `data` holds the full validated Deck. */
+export const deck = pgTable(
+  "deck",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    prompt: text("prompt").notNull(),
+    data: jsonb("data").$type<Deck>().notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("deck_user_created_idx").on(table.userId, table.createdAt)]
+);
+
+/**
+ * One row per generation *attempt*, written before the LLM is called — so
+ * failed or abandoned generations still count toward the daily quota.
+ */
+export const generationLog = pgTable(
+  "generation_log",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("generation_log_created_idx").on(table.createdAt)]
+);

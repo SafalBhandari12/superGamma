@@ -26,6 +26,7 @@ export type DeckEvent =
  * Progress events still stream in outline order as each one lands.
  */
 export async function generateDeck(
+  userId: string,
   prompt: string,
   themeId: ThemeId,
   onEvent: (event: DeckEvent) => void
@@ -67,22 +68,22 @@ export async function generateDeck(
     createdAt: new Date().toISOString(),
   });
 
-  deckStore.save(deck);
+  await deckStore.save(userId, deck);
   logTotalCost();
   onEvent({ type: "done", data: { deckId: deck.id } });
   return deck;
 }
 
-export function getDeckById(id: string): Deck {
-  const deck = deckStore.get(id);
+export async function getDeckById(userId: string, id: string): Promise<Deck> {
+  const deck = await deckStore.get(userId, id);
   if (!deck) throw new NotFoundError(`No deck with id "${id}"`);
   return deck;
 }
 
 /** Re-theme an existing deck without regenerating any content. */
-export function retheme(id: string, themeId: ThemeId): Deck {
-  const deck = getDeckById(id);
+export async function retheme(userId: string, id: string, themeId: ThemeId): Promise<Deck> {
+  const deck = await getDeckById(userId, id);
   const next: Deck = { ...deck, theme: THEMES[themeId] };
-  deckStore.save(next);
+  await deckStore.save(userId, next);
   return next;
 }

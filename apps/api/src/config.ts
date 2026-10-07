@@ -32,4 +32,8 @@ export const config = {
   mailerooApiKey: required("MAILEROO_API_KEY"),
   mailFromEmail: required("MAIL_FROM_EMAIL"),
   mailFromName: process.env.MAIL_FROM_NAME ?? "superGamma",
+
+  /** Rolling-24h generation caps — see services/quotaService.ts. */
+  dailyDeckLimitPerUser: Number(process.env.DAILY_DECK_LIMIT_PER_USER ?? 10),
+  dailyDeckLimitGlobal: Number(process.env.DAILY_DECK_LIMIT_GLOBAL ?? 150),
 };
